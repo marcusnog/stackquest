@@ -52,7 +52,8 @@ function warroomPage(drill,startDelivery=false){
   <div id="wr-code"><textarea id="wr-source" aria-label="Código de receita.js" spellcheck="false" autocapitalize="off" rows="5" placeholder="// Escreva uma receita para a impressora"></textarea></div>
   <div class="wr-run"><span id="wr-cursor">Ln 1 · Col 1</span><button id="wr-print-item" class="pg-primary">▶ Imprimir item</button></div>
   <section id="wr-print-console" class="wr-console-output"><strong>Console da impressora</strong><pre id="wr-print-result" role="log" aria-live="polite"></pre></section></form>
-  <section id="wr-shell" class="wr-console-output" hidden><strong>Terminal da doca · VPS simulada</strong><pre id="wr-shell-log" role="log" aria-live="polite"></pre><form id="wr-command"><label for="wr-command-line">lia $</label><input id="wr-command-line" aria-label="Comando do terminal" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="npm test"><button class="pg-primary">Executar</button></form>
+  <section id="wr-shell" class="wr-console-output" hidden><header class="wr-shell-header"><strong>Terminal da doca · VPS simulada</strong><button type="button" id="wr-shell-size" aria-controls="wr-shell" aria-expanded="false">Maximizar terminal</button></header>
+  <pre id="wr-shell-log" role="log" aria-label="Saída do terminal" aria-live="polite" tabindex="0"></pre><form id="wr-command"><label for="wr-command-line">lia $</label><input id="wr-command-line" aria-label="Comando do terminal" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="npm test"><button class="pg-primary">Executar</button></form>
   <button type="button" id="wr-again" hidden>Repetir missão</button></section></div></div>
   <aside id="wr-mission-coach" hidden><div role="status" aria-live="polite"><strong></strong><p></p></div><button type="button" id="wr-toggle-coach">Ocultar dica</button></aside>
   <footer class="wr-laptop-base" id="wr-footer"></footer><div class="wr-hardware" aria-hidden="true"><i></i><b></b></div></dialog>
@@ -121,7 +122,22 @@ function warroomPage(drill,startDelivery=false){
     for(const b of el('files').children)b.setAttribute('aria-pressed',String(b.dataset.file===file));
     paintMission();
   }
+  const shellSize=el('shell-size');
+  function setTerminalMaximized(expanded){
+    notebook.classList.toggle('wr-shell-maximized',expanded);
+    shellSize.setAttribute('aria-expanded',String(expanded));
+    shellSize.textContent=expanded?'Voltar à IDE':'Maximizar terminal';
+  }
+  function restoreIDE(){
+    setTerminalMaximized(false);
+    (editor||source).focus();
+  }
+  shellSize.onclick=()=>{
+    if(notebook.classList.contains('wr-shell-maximized'))restoreIDE();
+    else setTerminalMaximized(true);
+  };
   function switchApp(project){
+    setTerminalMaximized(false);
     app=project;const home=app==='home',mission=app==='delivery';
     notebook.dataset.app=app;el('desktop').hidden=!home;el('projects').hidden=home;
     notebook.querySelector('.wr-workspace').hidden=home;el('cookbook').hidden=mission;
@@ -188,7 +204,11 @@ function warroomPage(drill,startDelivery=false){
     notebook.classList.add('wr-folding');
     closing=setTimeout(()=>{closing=0;notebook.classList.remove('wr-folding');notebook.close();},150);
   }
-  el('shut').onclick=closeNotebook;notebook.oncancel=e=>{e.preventDefault();closeNotebook();};
+  el('shut').onclick=closeNotebook;notebook.oncancel=e=>{
+    e.preventDefault();
+    if(notebook.classList.contains('wr-shell-maximized'))restoreIDE();
+    else closeNotebook();
+  };
   el('print').onsubmit=e=>{
     e.preventDefault();
     if(app!=='print')return;
