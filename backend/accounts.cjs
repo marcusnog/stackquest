@@ -1,6 +1,7 @@
 const {DatabaseSync}=require('node:sqlite');
 const {randomBytes,scrypt,timingSafeEqual,createHash}=require('node:crypto');
 const {promisify}=require('node:util');
+const {communities}=require('./communities.cjs');
 const derive=promisify(scrypt);
 const digest=s=>createHash('sha256').update(s).digest('hex');
 const expiry=7*24*3600*1000;
@@ -23,6 +24,7 @@ function accounts(filename,{clientId=process.env.GITHUB_CLIENT_ID,clientSecret=p
     CREATE TABLE IF NOT EXISTS github_identities(github_id TEXT PRIMARY KEY,user_id INTEGER UNIQUE NOT NULL REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS progress(user_id INTEGER NOT NULL REFERENCES users(id),key TEXT NOT NULL, value TEXT NOT NULL,version INTEGER NOT NULL, PRIMARY KEY(user_id,key));`);
   const rates=new Map();let hashing=0;
+  const communityRoute=communities(db,{json,failure});
   // Index the completion flags so a public read never scans saved code, diagrams or notes.
   const activityXP=`CASE
     WHEN key GLOB 'stackquest.missao.v1.*' AND json_extract(value,'$.date') GLOB '????-??-??' THEN 100
@@ -144,6 +146,7 @@ function accounts(filename,{clientId=process.env.GITHUB_CLIENT_ID,clientSecret=p
       return;
     }
     const {user,hash}=identity(req);
+    if(/^\/api\/communities(?:[/?]|$)/.test(req.url))return communityRoute(req,send,user);
     if(req.method==='GET'&&req.url==='/api/me')return send(200,snapshot(user));
     if(req.method==='POST'&&req.url==='/api/auth/logout'){
       db.prepare('DELETE FROM sessions WHERE hash=?').run(hash);return send(200,{ok:true});

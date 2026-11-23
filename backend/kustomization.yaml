@@ -6,4 +6,4 @@ resources:
   - tls.yaml
 configMapGenerator:
   - name: stackquest-code
-    files: [server.cjs, experiments.cjs, accounts.cjs]
+    files: [server.cjs, experiments.cjs, accounts.cjs, communities.cjs]

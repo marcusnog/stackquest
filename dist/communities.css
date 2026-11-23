@@ -1,0 +1,16 @@
+.community-body .pagehead{margin-top:12px}
+.community-tools{display:flex;align-items:flex-start;flex-wrap:wrap;gap:16px;margin:18px 0}
+.community-page details.card{max-width:42rem;margin-bottom:16px}
+.community-tools details.card{flex:1 1 18rem;margin:0;min-width:0}
+.community-page summary{cursor:pointer;font-weight:650}
+.community-page form{display:grid;gap:12px;margin-top:16px}
+.community-page form+form{border-top:1px solid var(--line);padding-top:16px}
+.community-page label{display:grid;gap:6px}
+.community-page :is(input,select){font:inherit;max-width:100%;width:100%;min-width:0;padding:8px;border:1px solid var(--control-edge);border-radius:5px;background:var(--surface);color:var(--ink)}
+.community-page pre{font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.community-page .act{justify-self:start}
+.community-page :is(h1,h2,h3,li){overflow-wrap:anywhere}
+.community-materials{list-style:none;padding:0}
+.community-materials li{padding:12px 0;border-bottom:1px solid var(--line)}
+.community-materials small{display:block;color:var(--muted)}
+.community-status{margin-top:12px}

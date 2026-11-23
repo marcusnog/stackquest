@@ -10,7 +10,7 @@ return async function handler(req,res){
     headers['Access-Control-Allow-Methods']='GET, POST, PUT, OPTIONS';
     res.writeHead(204,headers);return res.end();
   }
-  if(req.url.startsWith('/api/auth/')||req.url==='/api/me'||req.url==='/api/progress'||req.url.split('?')[0]==='/api/ranking'){
+  if(req.url.startsWith('/api/auth/')||/^\/api\/communities(?:[/?]|$)/.test(req.url)||req.url==='/api/me'||req.url==='/api/progress'||req.url.split('?')[0]==='/api/ranking'){
     try{await store.route(req,send);}catch(e){send(e.status||500,{error:e.status?e.message:'Erro ao acessar a conta.'});}return;
   }
   if(req.method!=='GET'){headers.Allow='GET';return send(405,{error:'Use GET.'});}

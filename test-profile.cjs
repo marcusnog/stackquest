@@ -26,6 +26,7 @@ test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
   render();
   assert.equal(profile.hidden,true);
   assert.equal(profile.innerHTML,'');
+  assert.doesNotMatch(element('nav').innerHTML,/#comunidades/);
 
   account.name='aluno';
   const titles=['Estagiário de Engenharia de Software','Engenheiro de Software Júnior',
@@ -34,6 +35,7 @@ test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
   for (const [i,title] of titles.entries()) {
     if (i>0) vm.runInContext(`lessons.filter(l=>l.m===${i-1}).forEach(l=>records.set(l.id,{date:'2026-11-22'}))`,context);
     render();
+    assert.match(element('nav').innerHTML,/#comunidades/);
     assert.equal(profile.hidden,false);
     assert.ok(profile.innerHTML.includes('<strong>'+title+'</strong>'));
     assert.ok(profile.innerHTML.includes('Nível 0'+(i+1)+' · '+(i*300)+' XP'));
