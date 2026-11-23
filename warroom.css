@@ -19,11 +19,20 @@
 .wr-objective #wr-help{margin-left:auto}
 #wr-intro{position:fixed;inset:0;margin:auto;width:min(27rem,calc(100% - 24px));max-height:90dvh;overflow:auto;box-sizing:border-box;padding:22px;background:#223840;color:#f4edda;border:3px double #b59765;border-radius:10px;box-shadow:0 18px 50px #07131999}
 #wr-intro::backdrop{background:#071823bc}
-#wr-notebook{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(30rem,calc(100% - 24px));max-height:88dvh;overflow:auto;padding:20px;color:#edf3e7;background:#192e35;border:4px solid #708087;border-bottom:8px solid #52616a;border-radius:12px;box-shadow:0 10px 32px #07131980}
+#wr-notebook{position:fixed;inset:0;margin:auto;box-sizing:border-box;width:min(55rem,calc(100% - 18px));max-height:92dvh;overflow:auto;padding:0;color:#edf3e7;background:#18272d;border:7px solid #415257;border-bottom:12px solid #627275;border-radius:16px;box-shadow:0 18px 48px #071319ac;color-scheme:dark}
 #wr-notebook::backdrop{background:#071823bc}
 #wr-notebook h2{margin:.3rem 0;color:#ffe1a1}#wr-notebook small{font:700 .75rem var(--mono);color:#b5ddd2}
-#wr-notebook details{padding:.6rem .8rem;margin:.8rem 0;background:#273e45;border-radius:5px}#wr-notebook summary{cursor:pointer}#wr-notebook li+li{margin-top:.5rem}
-#wr-notebook label{display:block;margin-bottom:.3rem}#wr-code{box-sizing:border-box;width:100%;background:#0b2026;color:#c7f2cc;padding:12px;border:1px solid #84a59b;border-radius:4px;font:1rem var(--mono)}#wr-code::placeholder{color:#adc6bd}
+.wr-lid,.wr-file,.wr-run{display:flex;align-items:center;justify-content:space-between;gap:10px}.wr-lid{padding:16px;background:#23393f;border-bottom:1px solid #52666a}
+.wr-workspace{display:grid;grid-template-columns:minmax(11rem,32%) minmax(0,1fr)}
+.wr-workspace aside{min-width:0}.wr-workspace>aside{background:#1c3238;padding:14px;border-right:1px solid #43555b}
+.wr-workspace summary{cursor:pointer;font-weight:bold}.wr-workspace details ul{list-style:none;padding:0;margin:0}.wr-workspace details li{display:grid;gap:4px;padding:12px 0;border-bottom:1px solid #374d54}
+.wr-workspace details code,.wr-file strong{font:.85rem var(--mono);color:#9ae4ce}.wr-workspace details span,.wr-file span,.wr-run span,.wr-laptop-base{font:.75rem var(--mono);color:#b9c8c9}
+.wr-file,.wr-run,.wr-console-output{padding:9px 14px}.wr-file{border-bottom:1px solid #48535d}.wr-run{border-block:1px solid #48535d}
+#wr-code{background:#282c34;min-width:0}#wr-source{box-sizing:border-box;width:100%;padding:12px;resize:vertical;border:none;color:#edf3e7;background:#282c34;font:1rem var(--mono)}
+#wr-code .cm-editor{height:clamp(7rem,21vh,15rem);font:.95rem/1.55 var(--mono)}#wr-code .cm-scroller{overflow:auto}
+.wr-console-output{background:#112127}.wr-console-output strong{color:#afddcc}.wr-console-output pre{min-height:2.6em;max-height:7em;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:.83rem/1.45 var(--mono)}
+.wr-laptop-base{display:block;text-align:center;padding:7px;background:#25363c}
+@media(max-width:600px){.wr-workspace{display:flex;flex-direction:column}.wr-workspace>aside{order:1;border:0}.wr-lid{padding:10px}.wr-file{flex-wrap:wrap}}
 #wr-intro h2{margin:8px 0;color:#ffe3a6;font:700 1.65rem Georgia,serif}
 #wr-intro p,#wr-coach p,#wr-decision-tip{line-height:1.5}
 #wr-intro small,#wr-coach small{color:#ffda91;font:700 .75rem var(--mono)}
@@ -33,7 +42,8 @@
 #wr-coach::after{content:'';position:absolute;bottom:-6px;left:50%;width:9px;height:9px;background:#203940;border:solid #ab956a;border-width:0 1px 1px 0;transform:rotate(45deg)}
 #wr-coach p{margin:3px 0 0}#wr-skip{flex:none}
 .wr-game .wr-guided{outline:3px solid #ffd681;outline-offset:2px}
-.wr-copper-pin{display:none}.wr-guide-copper .wr-copper-pin{display:inline}.wr-guide-copper #wr-drop{visibility:hidden}
+.wr-material-pin{display:none}[data-guide-material="cobre"] .cobre,[data-guide-material="titanio"] .titanio,[data-guide-material="ceramica"] .ceramica{display:inline}
+.wr-game[data-guide-material]:not([data-guide-material=""]) #wr-drop{visibility:hidden}
 #wr-notebook #wr-coach,.pg-side #wr-coach{margin:10px 0 12px;box-shadow:0 4px 12px #09192155}
 #wr-decision-tip{border-left:3px solid #b98d49;padding-left:10px}#wr-decision-tip strong{display:block}
 @media(max-width:560px){#wr-coach:not([hidden]){align-items:flex-start;flex-direction:column;gap:4px}#wr-coach #wr-skip{align-self:flex-end}}

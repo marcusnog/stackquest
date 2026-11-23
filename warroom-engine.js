@@ -100,7 +100,8 @@ function warGather(state){
   return key;
 }
 function warRecipeFromCode(code){
-  const args=/^imprimir\s*\(\s*(["'])([a-z]+)\1\s*,\s*([1-9]\d*)\s*\)\s*;?$/.exec(code.trim());
+  const statement=code.replace(/\/\/[^\n]*/g,'').trim();
+  const args=/^imprimir\s*\(\s*(["'])([a-z]+)\1\s*,\s*([1-9]\d*)\s*\)\s*;?$/.exec(statement);
   if(!args)return null;
   return warRecipes.find(r=>r.material===args[2]&&r.layers===Number(args[3]));
 }
@@ -127,6 +128,7 @@ function warState(raw={}){
       return [key,Number.isSafeInteger(value)&&value>=0?value:0];
     })),
     printed:warRecipes.filter(r=>Array.isArray(raw?.printed)&&raw.printed.includes(r.id)).map(r=>r.id),
+    absorbed:['quake','storm'].filter(id=>Array.isArray(raw?.absorbed)&&raw.absorbed.includes(id)),
     hull:stage===2&&raw?.hull==='breached'?'breached':stage>=2&&raw?.hull==='sealed'?'sealed':'intact',
     tagRead:(power==='torch'||power==='restored')&&raw?.tagRead===true,
     wave,field:warFieldState(wave===1?raw.field:undefined),offset:operational&&stage!==4&&[1,2].includes(raw.offset)?raw.offset:0,
@@ -148,6 +150,7 @@ function warMove(state,key){
       const shield=state.printed.indexOf(hazard.kind);
       if(shield<0)return false;
       state.printed.splice(shield,1);
+      if(!state.absorbed.includes(hazard.kind))state.absorbed.push(hazard.kind);
     }
   }
   state.x=x;state.y=y;return true;
@@ -196,21 +199,43 @@ function warGuideDirection(state,arrived){
   }
   return null;
 }
-function warTrackerStep(state,notebookOpen,code){
-  const recipe=warRecipes.find(r=>r.id==='tracker');
+function warEquipmentStep(state,notebookOpen,code,recipe){
+  const hazard=warHazard(state);
+  if(hazard?.kind===recipe.id&&state.printed.includes(recipe.id)){
+    if(notebookOpen)return {step:6,key:'shut',text:recipe.name+' na mochila. Feche o notebook para praticar no convés.'};
+    const staging=recipe.id==='quake'?[3,4]:[7,4];
+    if(hazard.remaining===1){
+      for(const [key,[dx,dy]] of Object.entries(warDirections)){
+        const cell=hazard.cells.find(([x,y])=>x===state.x+dx&&y===state.y+dy);
+        if(cell)return {step:6,key,text:'O impacto chega neste passo! Entre em '+warCoord(cell)+' para ativar '+recipe.name+' e absorver o impacto.'};
+      }
+    }
+    if(state.x!==staging[0]||state.y!==staging[1]){
+      const key=warGuideDirection(state,(x,y)=>x===staging[0]&&y===staging[1]);
+      if(key)return {step:6,key,text:'Aproxime-se da faixa de impacto pelo ponto '+warCoord(staging)+'. Leve '+recipe.name+' na mochila.'};
+    }
+    return {step:6,key:'wait',text:'Espere um pulso com Q ou toque em Esperar. Quando uma casa vizinha estiver a um pulso do impacto, vou indicar onde entrar.'};
+  }
   if(!warChapters[state.stage]||state.printed.includes(recipe.id))return null;
   const [cx,cy]=warMaterials[recipe.material].pos,coord=warCoord([cx,cy]);
+  const material=warMaterials[recipe.material].name.toLowerCase();
   const stock=state.materials[recipe.material],command='imprimir("'+recipe.material+'", '+recipe.layers+')';
   if(stock<recipe.layers){
-    if(notebookOpen)return {step:2,key:'shut',text:'Ainda falta cobre. Feche o notebook para voltar ao depósito em '+coord+'.'};
-    if(state.x===cx&&state.y===cy)return {step:2,key:'gather',text:'Você tem '+stock+' de '+recipe.layers+' cobres. Pressione E ou toque em Recolher cobre para guardar uma unidade.'};
+    if(notebookOpen)return {step:2,key:'shut',text:'Ainda falta '+material+'. Feche o notebook para voltar ao depósito em '+coord+'.'};
+    if(state.x===cx&&state.y===cy)return {step:2,key:'gather',text:'Você tem '+stock+' de '+recipe.layers+' unidades de '+material+'. Pressione E ou toque em Recolher para guardar uma unidade.'};
     const key=warGuideDirection(state,(x,y)=>x===cx&&y===cy);
-    if(!key)return {step:1,key:'wait',text:'Espere um pulso com Q para abrir caminho até o cobre.'};
-    return {step:1,key,text:'Vá até o cobre em '+coord+'. Você está em '+warCoord([state.x,state.y])+'.'};
+    if(!key)return {step:1,key:'wait',text:'Espere um pulso com Q para abrir caminho até o depósito.'};
+    return {step:1,key,text:'Vá até o depósito de '+material+' em '+coord+'. Você está em '+warCoord([state.x,state.y])+'.'};
   }
-  if(!notebookOpen)return {step:3,key:'laptop',text:'Você já tem cobre suficiente. Pressione N ou toque em Abrir notebook na mochila.'};
+  if(!notebookOpen)return {step:3,key:'laptop',text:'Você já tem '+material+' suficiente. Pressione N ou toque em Abrir notebook na mochila.'};
   if(warRecipeFromCode(code)!==recipe)return {step:4,key:'code',text:'Digite '+command+' no campo abaixo. A primeira entrada escolhe o material, e a segunda define as camadas.'};
-  return {step:5,key:'print-item',text:'Receita pronta. Pressione Enter ou toque em Imprimir item para usar '+recipe.layers+' cobres e fabricar o rastreador.'};
+  return {step:5,key:'print-item',text:'Receita pronta. Use Ctrl+Enter ou toque em Imprimir item para gastar '+recipe.layers+' unidades de '+material+' e fabricar '+recipe.name+'.'};
+}
+function warGuideRecipe(state,practice=false){
+  const hazard=warHazard(state);
+  if(hazard&&!state.absorbed.includes(hazard.kind))return warRecipes.find(r=>r.id===hazard.kind);
+  if(!practice&&warChapters[state.stage]&&!state.printed.includes('tracker'))return warRecipes[0];
+  return null;
 }
 function warInteract(state){
   const target=warTarget(state);
