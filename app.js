@@ -1,4 +1,4 @@
-const pages = {roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], conquistas:['Conquistas','trophy']};
+const pages = {roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], conquistas:['Conquistas','trophy'],ranking:['Ranking','scale']};
 const course=[...coreModules,distributedModule,...aiModules];
 const lessons = course.flatMap((module, m) => module.lessons.map((lesson, l) =>
   ({...lesson, module, m, l, id:(m+1)+'-'+(l+1)})));
@@ -198,6 +198,7 @@ function render() {
   else if (page==='laboratorios') labsHome();
   else if (page==='biblioteca') library();
   else if (page==='conquistas') awards();
+  else if (page==='ranking') rankingPage();
   else roadmap();
   document.dispatchEvent(new Event('stackquest:render'));
 }
