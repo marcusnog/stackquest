@@ -4,9 +4,8 @@ const {readFileSync} = require('node:fs');
 const {join} = require('node:path');
 const vm = require('node:vm');
 
-test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
-  const read = name => readFileSync(join(__dirname, 'dist', name), 'utf8');
-  assert.match(read('index.html'), /id="profile" hidden/);
+const read = name => readFileSync(join(__dirname, 'dist', name), 'utf8');
+function studySession() {
   const elements = new Map();
   function element(id) {
     if (!elements.has(id)) elements.set(id, {
@@ -21,6 +20,27 @@ test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
     labGuides:[], dbCases:[], icon:()=>'', syncLabel:()=>'', labXP:()=>0
   });
   vm.runInContext(['course.js','distributed.js','ai-course.js','app.js'].map(read).join('\n'),context);
+  return {context,account,element};
+}
+
+test('A retomada prioriza a última missão aberta da trilha e aceita registros antigos',()=>{
+  const {context}=studySession();
+  const run=source=>vm.runInContext(source,context);
+  assert.equal(run('nextLesson().id'),'1-1');
+  run("records.set('2-1',{started:true})");
+  assert.equal(run('nextLesson().id'),'2-1');
+  run("records.set('8-1',{started:true,lastOpened:10});records.set('1-3',{started:true,lastOpened:20})");
+  assert.equal(run('nextLesson().id'),'1-3');
+  assert.equal(run('nextLesson(lessons.filter(l=>l.m>=coreModules.length)).id'),'8-1');
+  run("records.get('1-3').date='2026-11-23'");
+  assert.equal(run('nextLesson().id'),'8-1');
+  run("lessons.forEach(l=>records.set(l.id,{date:'2026-11-23'}))");
+  assert.equal(run('nextLesson()'),undefined);
+});
+
+test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
+  assert.match(read('index.html'), /id="profile" hidden/);
+  const {context,account,element}=studySession();
   const render = () => vm.runInContext("chrome('roadmap','Roadmap')",context);
   const profile = element('profile');
   render();
