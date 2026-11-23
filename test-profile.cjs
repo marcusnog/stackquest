@@ -20,7 +20,7 @@ test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
     window:{addEventListener() {}}, restoreAccount:()=>new Promise(()=>{}),
     labGuides:[], dbCases:[], icon:()=>'', syncLabel:()=>'', labXP:()=>0
   });
-  vm.runInContext(read('course.js')+'\n'+read('app.js'),context);
+  vm.runInContext(['course.js','distributed.js','ai-course.js','app.js'].map(read).join('\n'),context);
   const render = () => vm.runInContext("chrome('roadmap','Roadmap')",context);
   const profile = element('profile');
   render();
@@ -38,6 +38,11 @@ test('O cartão acompanha a sessão e os sete níveis da trilha', () => {
     assert.ok(profile.innerHTML.includes('<strong>'+title+'</strong>'));
     assert.ok(profile.innerHTML.includes('Nível 0'+(i+1)+' · '+(i*300)+' XP'));
   }
+  assert.equal(vm.runInContext("badges.find(b=>b.title==='Stack completa').progress()",context),18);
+  vm.runInContext("lessons.forEach(l=>records.set(l.id,{date:'2026-11-22'}))",context);
+  render();
+  assert.ok(profile.innerHTML.includes('Nível 07 · 3300 XP'));
+  assert.ok(profile.innerHTML.includes('Distinguished Engineer'));
   account.name='';
   render();
   assert.equal(profile.hidden,true);

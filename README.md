@@ -1,5 +1,9 @@
 # StackQuest
 
+[Abrir a trilha avançada](https://marcusnog.github.io/stackquest/#avancado)
+
+As 15 missões avançadas cobrem sistemas distribuídos sob falha, arquitetura de LLMs, RAG, fine-tuning e avaliação em produção. Duas missões incluem experimentos no navegador com recuperação de trechos e treino de um adaptador em um classificador pequeno.
+
 Trilha de System Design em português com missões, simuladores de infraestrutura e seis estudos práticos sobre bancos de dados.
 
 [Acessar laboratório de dados](https://marcusnog.github.io/stackquest/#lab/bancos) · [Saúde da API](https://stackquest.157.254.207.208.nip.io/api/health)
