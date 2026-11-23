@@ -180,6 +180,7 @@ function render() {
   applyAppearance();
   if(typeof disposeLabStudio==='function'){disposeLabStudio();disposeLabStudio=null;}
   if(typeof disposePlantao==='function'){disposePlantao();disposePlantao=null;}
+  if(typeof disposeCorreio==='function'){disposeCorreio();disposeCorreio=null;}
   const route=location.hash.slice(1)||'roadmap';
   if(route==='jogo/plantao'){chrome('laboratorios','Plantão no Datacenter');plantaoPage();return;}
   if(route==='jogo/correio'){chrome('laboratorios','Correio de Jobs');correioPage();return;}

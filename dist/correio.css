@@ -1,10 +1,17 @@
 .cj-entry {background:#263b52;border-color:#48627a}
 .cj-entry .plantao-entry-art {background:#fae3ad;color:#493813;border-color:#f8cd75}
 .cj-entry small {color:#f9da91}
-.cj-coach:has(#cj-guidance[hidden]){justify-content:flex-end;padding:2px 8px;border:0;background:transparent}
-.cj-coach #cj-guide-show{background:var(--accent-soft);color:var(--accent-ink);border-color:currentColor}
+.cj-tour-tools{display:flex;justify-content:flex-end;gap:6px;margin:0 0 8px}
+#cj-guidance{position:fixed;inset:auto;z-index:25;box-sizing:border-box;width:min(320px,calc(100vw - 16px));margin:0;padding:13px 16px 14px;background:#183a42;color:#fff5dc;border:1px solid #93beb2;border-radius:10px;box-shadow:0 5px 18px #081c2b55}
+#cj-guidance::before{content:'';position:absolute;left:var(--tip-arrow,50%);top:-7px;width:12px;height:12px;background:inherit;border:solid #93beb2;border-width:1px 0 0 1px;transform:translateX(-50%) rotate(45deg);pointer-events:none}
+#cj-guidance.cj-tip-above::before{top:auto;bottom:-7px;transform:translateX(-50%) rotate(225deg)}
+#cj-guide-stage{display:block;color:#fcd495;padding-right:34px}
+#cj-guidance h2{font-size:1.05rem;margin:.25rem 34px .3rem 0}
+#cj-guide-body{margin:0;color:#e6efe8;font-size:.88rem;line-height:1.45}
+.cj-game #cj-guide-dismiss{position:absolute;right:4px;top:2px;width:44px;height:44px;border:0;background:transparent;color:#fff5dc;font-size:1.4rem;line-height:1}
+#cj-guide-replay{margin-top:8px}
 .cj-sources .pg-guided{outline-color:#163e52!important}
-@media(min-height:620px){.cj-coach:has(#cj-guide-show:not([hidden])){position:sticky;top:0;z-index:4;box-shadow:0 3px 10px #14293920}}
+.cj-game .pg-guided{scroll-margin:0}
 .cj-transit{opacity:0;pointer-events:none}
 @media(prefers-reduced-motion:no-preference){
   .cj-transit{animation:cj-transfer 560ms ease-in-out}

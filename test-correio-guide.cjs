@@ -3,6 +3,18 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm');
 const files=['correio-engine','correio-workshop','correio-station','correio-guide'];
 const source=files.map(name=>fs.readFileSync(require.resolve('./dist/'+name+'.js'),'utf8')).join('\n');
+const position=vm.runInNewContext(source+';correioTipPosition');
+test('balão aponta para o controle nas bordas do celular sem cobrir sua área de clique',()=>{
+  const tip={width:300,height:125},bounds={left:0,top:0,right:360,bottom:640};
+  for(const x of [0,130,316]) for(const y of [0,280,596]){
+    const rect={left:x,top:y,width:44,bottom:y+44};
+    const p=position(rect,tip,bounds);
+    assert.ok(p.left>=0 && p.left+tip.width<=bounds.right);
+    assert.ok(p.top>=0 && p.top+tip.height<=bounds.bottom);
+    assert.ok(p.top>=rect.bottom+12 || p.top+tip.height<=rect.top-12);
+    assert.ok(p.left+p.arrow>=rect.left && p.left+p.arrow<=rect.left+rect.width);
+  }
+});
 const {correioConfig,correioWorkshop,correioCollect,correioCraft,correioGuide,runCorreio,correioStation}=
   vm.runInNewContext(source+';({correioConfig,correioWorkshop,correioCollect,correioCraft,correioGuide,runCorreio,correioStation})');
 function partida(workers=1){

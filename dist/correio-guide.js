@@ -1,3 +1,13 @@
+// Coordinates use the same viewport space as getBoundingClientRect().
+function correioTipPosition(rect,tip,viewport) {
+  const gap=12, margin=8, center=rect.left+rect.width/2;
+  const left=Math.max(viewport.left+margin,Math.min(center-tip.width/2,viewport.right-margin-tip.width));
+  const above=rect.top-viewport.top,below=viewport.bottom-rect.bottom;
+  const onTop=below<tip.height+gap+margin && above>below;
+  return {left,top:onTop?rect.top-gap-tip.height:rect.bottom+gap,onTop,
+    arrow:Math.max(14,Math.min(center-left,tip.width-14))};
+}
+
 function correioGuide(state,view,recipeId,run) {
   const action=(stage,title,body,target)=>({stage,title,body,target});
   const shop=state.workshop, frame=run.frames[state.cursor];
@@ -10,15 +20,15 @@ function correioGuide(state,view,recipeId,run) {
       if (shop.bag[id]>=qty) continue;
       const m=correioMaterials[id];
       if (view!=='depot') return action(1,'Abra o almoxarifado','A bancada precisa de '+qty+' de '+m.name.toLowerCase()+'. Recolha o material na central.','[data-view="depot"]');
-      return action(1,'Colete '+m.name.toLowerCase(),'Use '+m.source.toLowerCase()+' para recolher '+m.name.toLowerCase()+'. A receita pede '+qty+' e você tem '+shop.bag[id]+'.','[data-collect="'+id+'"]');
+      return action(1,'Colete '+m.name.toLowerCase(),'Clique em '+m.source+' para recolher '+m.name.toLowerCase()+'. A receita pede '+qty+' e você tem '+shop.bag[id]+'.','[data-collect="'+id+'"]');
     }
     if (recipeId!=='bench') return action(2,'Escolha a receita de bancada','Você já tem a madeira e o metal. Selecione a bancada na oficina.','[data-recipe="bench"]');
-    return action(2,'Fabrique a segunda bancada','A oficina usará duas unidades de madeira e uma de metal. A nova bancada permite atender outro pedido ao mesmo tempo.','#cj-craft');
+    return action(2,'Fabrique a segunda bancada','Clique em Fabricar bancada. A oficina usa 2 de madeira e 1 de metal para abrir espaço para outro worker.','#cj-craft');
   }
   if (state.config.workers<2)
     return action(3,'Ative o segundo worker','Em Workers ativos, escolha 2 bancadas. Cada pedido leva 2 segundos e o prazo para quatro pedidos é de 4 segundos.','#cj-workers');
   if (view!=='operation') return action(4,'Abra a triagem','As bancadas estão prontas. Abra a triagem para acompanhar o caminho dos envelopes.','[data-view="operation"]');
-  if (state.cursor===0) return action(4,'Retire o primeiro envelope','Avance um evento para ver um worker retirar seu primeiro pedido da fila.','#cj-step');
+  if (state.cursor===0) return action(4,'Retire o primeiro envelope','Clique em Próximo evento para ver o primeiro worker retirar um pedido da fila.','#cj-step');
   if (!frame.sent) {
     const busy=frame.workers.filter(Boolean).length;
     if(busy<frame.workers.length && frame.waiting.length)
