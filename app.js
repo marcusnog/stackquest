@@ -53,16 +53,18 @@ const badges = [
   {title:'Stack completa',detail:'Conclua as 18 missões da trilha inicial.',goal:18,progress:()=>countDone(lessons.filter(l=>l.m<coreModules.length)),icon:'trophy'}
 ];
 function header(section, title, summary) {
-  return '<div class="pagehead"><div class="eyebrow">'+section+'</div><h1>'+title+'</h1><p>'+summary+'</p></div>';
+  document.querySelector('.crumb-home').textContent=section;
+  return '<header class="pagehead"><h1>'+title+'</h1>'+(summary?'<p>'+summary+'</p>':'')+'</header>';
 }
 function chrome(page, label) {
+  document.querySelector('.crumb-home').textContent=pages[page]?.[0]===label?'Área de estudo':(pages[page]?.[0]||'Área de estudo');
   document.getElementById('account-link').innerHTML=account.name?account.name+' <small id="sync-label">'+syncLabel()+'</small>':'Entrar';
   document.title = label+' · StackQuest';
   document.getElementById('nav').innerHTML = Object.entries(pages).filter(([key])=>key!=='comunidades'||account.name).map(([key,[title,symbol]])=>
     '<a href="#'+key+'" '+(key===page?'aria-current="page"':'')+'>'+icon(symbol)+title+'</a>').join('');
   document.getElementById('crumb').textContent=label;
   const days=streakDays();
-  document.getElementById('streak').innerHTML='<span class="streak">'+icon('fire',16)+days+(days===1?' dia':' dias')+' de sequência</span>';
+  document.getElementById('streak').innerHTML='<span class="streak" title="Dias de sequência">'+icon('fire',16)+days+(days===1?' dia':' dias')+'<span class="streak-description"> de sequência</span></span>';
   const profile=document.getElementById('profile');
   profile.hidden=!account.name;
   if(profile.hidden){profile.replaceChildren();return;}
@@ -116,15 +118,18 @@ function referenceLink(lesson) {
 }
 function library() {
   main.innerHTML=header('Material de estudo','Biblioteca','Encontre uma missão pelo tema e consulte a documentação usada na trilha.')+
-    '<div class="library-search">'+icon('search',18)+'<input type="search" id="search" aria-label="Buscar por assunto" placeholder="Buscar por assunto ou módulo"></div><div class="library-grid" id="results"></div><p class="sr" id="searchCount" role="status"></p>';
+    '<div class="library-search">'+icon('search',18)+'<input type="search" id="search" aria-label="Buscar por assunto ou módulo" placeholder="Buscar por assunto ou módulo"></div><div class="library-filter-status"><p id="searchCount" role="status"></p><button type="button" class="textlink" id="clear-search" hidden>Limpar busca</button></div><div class="library-grid" id="results"></div>';
+  const search=document.getElementById('search'),clear=document.getElementById('clear-search');
   const normalize=s=>s.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   function filter() {
-    const term=normalize(document.getElementById('search').value.trim());
+    const term=normalize(search.value.trim());
+    clear.hidden=!search.value;
     const results=lessons.filter(l=>normalize([l.title,l.module.title,l.reference.title,...l.paragraphs].join(' ')).includes(term));
     document.getElementById('results').innerHTML=results.map(l=>'<article class="resource"><div class="eyebrow">'+l.module.title+'</div><h2><a href="'+lessonLink(l)+'">'+l.title+'</a></h2><p>'+l.exercise+'</p>'+referenceLink(l)+'</article>').join('') || '<p>Nenhuma missão encontrada. Tente outro assunto.</p>';
-    document.getElementById('searchCount').textContent=results.length+' missões encontradas.';
+    document.getElementById('searchCount').textContent=results.length===1?'1 missão encontrada':results.length+' missões encontradas';
   }
-  document.getElementById('search').addEventListener('input',filter);filter();
+  clear.onclick=()=>{search.value='';filter();search.focus();};
+  search.addEventListener('input',filter);filter();
 }
 function awards() {
   const earned=badges.filter(b=>b.progress()>=b.goal).length;
@@ -137,7 +142,7 @@ function showLesson(l) {
   const advanced=l.m>=coreModules.length;
   const designCase=archCases.find(c=>archLessons[c.id]===l.id);
   main.innerHTML='<div class="lesson-wrap">'+(advanced?'<a class="back" href="#avancado">Voltar à trilha avançada</a>':'<a class="back" href="#roadmap">Voltar ao roadmap</a>')+
-    header('Módulo '+(l.m+1)+' / '+l.module.title,l.title,'Missão '+(l.l+1)+' de '+l.module.lessons.length+' · '+l.minutes+' min · '+xp+' XP')+
+    header('Missão',l.title,'Módulo '+(l.m+1)+' · '+l.module.title+' · Missão '+(l.l+1)+' de '+l.module.lessons.length+' · '+l.minutes+' min · '+xp+' XP')+
     '<article class="lessoncard"><h2>Aula</h2>'+l.paragraphs.map(p=>'<p>'+p+'</p>').join('')+'<div class="case"><b>Cenário</b>'+l.scenario+'</div></article>'+
     (['9-2','10-3'].includes(l.id)?'<section class="lessoncard" id="ai-experiment"></section>':'')+
     '<form class="lessoncard" id="test"><h2>Teste sua decisão</h2><fieldset><legend>'+l.question+'</legend>'+
@@ -215,6 +220,20 @@ function render() {
   document.dispatchEvent(new Event('stackquest:render'));
 }
 document.querySelector('[data-icon="panel"]').innerHTML=icon('panel',18);
+const menuButton=document.getElementById('study-menu');
+menuButton.onclick=()=>menuButton.setAttribute('aria-expanded',String(menuButton.getAttribute('aria-expanded')!=='true'));
+document.getElementById('sidebar').addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&menuButton.getAttribute('aria-expanded')==='true'){
+    menuButton.setAttribute('aria-expanded','false');
+    menuButton.focus();
+  }
+});
+document.getElementById('nav').addEventListener('click',event=>{
+  if(event.target.closest('a')&&menuButton.getAttribute('aria-expanded')==='true'){
+    menuButton.setAttribute('aria-expanded','false');
+    main.focus({preventScroll:true});
+  }
+});
 document.querySelector('.skip').addEventListener('click',event=>{
   event.preventDefault();
   main.focus();
