@@ -189,6 +189,7 @@ function render() {
   }
   if(route==='jogo/plantao'){chrome('laboratorios','Plantão no Datacenter');plantaoPage();return;}
   const drill=route.match(/^jogo\/war-room\/treino\/(rota|ecos|antena)$/);
+  if(route==='jogo/war-room/entrega'){chrome('laboratorios','Plantão em órbita · O sinal de prontidão');warDeliveryPage();return;}
   if(route==='jogo/war-room'||drill){chrome('laboratorios','War Room · Plantão em órbita');warroomPage(drill?.[1]);return;}
   if(route==='jogo/correio'){chrome('laboratorios','Correio de Jobs');correioPage();return;}
   if(route==='aparencia'){chrome('conta','Aparência');appearancePage();return;}
