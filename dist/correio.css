@@ -1,6 +1,15 @@
 .cj-entry {background:#263b52;border-color:#48627a}
 .cj-entry .plantao-entry-art {background:#fae3ad;color:#493813;border-color:#f8cd75}
 .cj-entry small {color:#f9da91}
+.cj-coach:has(#cj-guidance[hidden]){justify-content:flex-end;padding:2px 8px;border:0;background:transparent}
+.cj-coach #cj-guide-show{background:var(--accent-soft);color:var(--accent-ink);border-color:currentColor}
+.cj-sources .pg-guided{outline-color:#163e52!important}
+@media(min-height:620px){.cj-coach:has(#cj-guide-show:not([hidden])){position:sticky;top:0;z-index:4;box-shadow:0 3px 10px #14293920}}
+.cj-transit{opacity:0;pointer-events:none}
+@media(prefers-reduced-motion:no-preference){
+  .cj-transit{animation:cj-transfer 560ms ease-in-out}
+  @keyframes cj-transfer{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}82%{opacity:1}100%{opacity:0;transform:translate(var(--travel-x),var(--travel-y))}}
+}
 .cj-game button:not(.pg-primary) {color:var(--ink);background:var(--surface);border:1px solid var(--control-edge,var(--line));padding:.4rem .7rem;border-radius:6px;font-size:.875rem}
 .cj-view,.cj-recipes,#cj-cost,#cj-slots{display:flex;flex-wrap:wrap;gap:.45rem}
 .cj-game .cj-view button,.cj-game .cj-recipes button{min-height:44px}
