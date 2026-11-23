@@ -155,6 +155,26 @@ test('tremor e tempestade anunciam, barram a entrada no impacto e deixam uma sa�
     assert.equal(warTarget(old).kind,'puzzle');
   }
 });
+test('receitas da impressora criam equipamentos distintos e somente a proteção correta se gasta no impacto',()=>{
+  const print=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;warPrint');
+  assert.equal(warState().printed.length,0);
+  for(const [stage,gear,other] of [[3,'quake','storm'],[5,'storm','quake']]){
+    const s=warState({stage,wave:1,x:stage===3?1:5,y:1,field:{beat:2},printed:['inválido']});
+    for(const code of ['imprimir(cobre,2)','imprimir("cobre",3)','imprimir("cobre",2); imprimir("cobre",2)']){
+      assert.equal(print(s,code).ok,false);
+      assert.equal(s.printed.length,0);
+    }
+    for(const code of [' imprimir( "cobre", 2 ); ',"imprimir('titanio',4)",'imprimir("ceramica", 3)']){
+      assert.equal(print(s,code).ok,true);
+      assert.equal(print(s,code).ok,false);
+    }
+    const resumed=warState(JSON.parse(JSON.stringify(s)));
+    assert.equal(warMove(resumed,'d'),true);
+    assert.ok(!resumed.printed.includes(gear));
+    assert.ok(resumed.printed.includes(other)&&resumed.printed.includes('tracker'));
+    assert.equal(print(resumed,gear==='quake'?'imprimir("titanio",4)':'imprimir("ceramica",3)').ok,true);
+  }
+});
 test('a etiqueta precisa estar no facho e ao alcance; o quadro salvo continua energizado',()=>{
   const s=warState({stage:1,power:'torch',x:3,y:0,facing:'d'});
   assert.equal(warInteract(s),'far');
