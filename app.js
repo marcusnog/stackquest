@@ -32,10 +32,18 @@ function streakDays() {
   while (dates.has(dateKey(day))) {days++; day.setDate(day.getDate()-1);}
   return days;
 }
+const careerTitles = [
+  'Estagiário de Engenharia de Software',
+  'Engenheiro de Software Júnior',
+  'Engenheiro de Software Pleno',
+  'Engenheiro de Software Sênior',
+  'Staff Software Engineer',
+  'Principal Software Engineer',
+  'Distinguished Engineer'
+];
 function rank() {
-  const n = countDone();
   const level = 1+course.filter((_,i)=>lessons.filter(l=>l.m===i).every(complete)).length;
-  return {level, title:n===lessons.length?'Arquiteto de sistemas':level>=4?'Projetista':level>=2?'Construtor':'Aprendiz'};
+  return {level, title:careerTitles[level-1]};
 }
 const badges = [
   {title:'Primeiro deploy',detail:'Conclua sua primeira missão.',goal:1,progress:()=>countDone(),icon:'flag'},
@@ -52,9 +60,13 @@ function chrome(page, label) {
   document.getElementById('nav').innerHTML = Object.entries(pages).map(([key,[title,symbol]])=>
     '<a href="#'+key+'" '+(key===page?'aria-current="page"':'')+'>'+icon(symbol)+title+'</a>').join('');
   document.getElementById('crumb').textContent=label;
-  const days=streakDays(), {level,title}=rank();
+  const days=streakDays();
   document.getElementById('streak').innerHTML='<span class="streak">'+icon('fire',16)+days+(days===1?' dia':' dias')+' de sequência</span>';
-  document.getElementById('profile').innerHTML='<div class="avatar">'+icon('terminal',22)+'</div><div><strong>'+title+'</strong><small>Nível '+String(level).padStart(2,'0')+' · '+(countDone()*xp+labXP())+' XP</small></div>';
+  const profile=document.getElementById('profile');
+  profile.hidden=!account.name;
+  if(profile.hidden){profile.replaceChildren();return;}
+  const {level,title}=rank();
+  profile.innerHTML='<div class="avatar">'+icon('terminal',22)+'</div><div><strong>'+title+'</strong><small>Nível '+String(level).padStart(2,'0')+' · '+(countDone()*xp+labXP())+' XP</small></div>';
 }
 function lessonLink(lesson) {return '#missao/'+lesson.id;}
 function hero() {
