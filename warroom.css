@@ -112,6 +112,11 @@
 .wr-hardware{flex:none;display:grid;justify-items:center;gap:4px;padding:5px 12% 3px;background:linear-gradient(#26373a 0 3px,#76888b 4px,#53686b 100%);border-top:2px solid #16262d}
 .wr-hardware i{width:100%;height:18px;background:repeating-linear-gradient(90deg,transparent 0 4%,#637679 4% 4.5%),repeating-linear-gradient(0deg,#33464a 0 6px,#637679 6px 9px);border-radius:3px}
 .wr-hardware b{width:24%;height:7px;border:1px solid #415457;border-radius:2px}
+.wr-shell-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 12px}
+#wr-notebook.wr-shell-maximized{height:92dvh}
+.wr-shell-maximized :is(#wr-projects,#wr-files,#wr-print,#wr-mission-coach){display:none}
+#wr-notebook.wr-shell-maximized .wr-workspace,.wr-shell-maximized .wr-edit-pane,.wr-shell-maximized #wr-shell{display:flex;flex:1;min-height:0;flex-direction:column}
+.wr-shell-maximized #wr-shell-log{flex:1;min-height:3em;max-height:none}
 #wr-command{display:flex;align-items:stretch;gap:8px}
 #wr-command label{align-self:center;white-space:nowrap}
 #wr-command button{flex:none;width:auto;margin:0}
