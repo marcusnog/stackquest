@@ -16,7 +16,7 @@ function fixture() {
   for (const file of ['lab-engine.js','lab-guides.js','warroom-delivery.js']) {
     vm.runInContext(readFileSync(join(__dirname,'dist',file),'utf8'),context);
   }
-  return vm.runInContext('({newLab,labCommand,checkLab,labGuides,starterApp,warDeliveryLab,warDeliveryCommand,warRunWorkflow,warSmoke,warDeliveryFile})',context);
+  return vm.runInContext('({newLab,labCommand,checkLab,labGuides,starterApp,warDeliveryLab,warDeliveryCommand,warRunWorkflow,warSmoke,warDeliveryFile,warDeliveryRun,warDeliveryState,warDeliveryGuide,warPipelineSteps,warPipelineFile})',context);
 }
 
 test('A doca verifica o código remoto e exige um novo deploy após o teste local',async()=>{
@@ -30,6 +30,26 @@ test('A doca verifica o código remoto e exige um novo deploy após o teste loca
   assert.equal((await warDeliveryCommand(lab,warSmoke)).verified,true);
 });
 
+test('O terminal do notebook migra rascunhos e exige testes, publicação e confirmação antes do push',async()=>{
+  const {warDeliveryState,warDeliveryLab,warDeliveryRun,warDeliveryGuide,warPipelineSteps,warPipelineFile,warSmoke}=fixture();
+  const s=warDeliveryState({steps:'      - run: npm test'}),lab=warDeliveryLab(s.source),messages=[];
+  const run=cmd=>warDeliveryRun(s,lab,cmd,text=>messages.push(text));
+  assert.equal(warDeliveryGuide(s,'app.js')[2],'terminal');
+  await assert.rejects(run('deploy web-01'),/npm test/);
+  await run('npm test');assert.equal(s.stage,0);assert.equal(warDeliveryGuide(s,'app.js')[2],'code');
+  s.source=s.source.replace('  //','  if(request.path==="/ready")return {status:200,body:"pronto"};\n  //');
+  await run('npm test');assert.equal(s.stage,1);
+  await run('curl http://web-01:8080/ready');assert.equal(s.stage,1);assert.match(messages.at(-1),/404/);
+  await run('deploy web-01');assert.equal(s.deployedSource,s.source);
+  await assert.rejects(run('git push'),/confirme/);
+  await run(warSmoke);assert.equal(s.stage,2);
+  assert.equal(warDeliveryGuide(s,'app.js')[2],'files');assert.equal(warDeliveryGuide(s,warPipelineFile)[2],'code');
+  assert.throws(()=>warPipelineSteps(s.workflow.replace('on: push','on: pull_request')),/push/);
+  await assert.rejects(run('git push'),/sem publicar/);
+  s.workflow+='\n      - run: deploy web-01\n      - run: '+warSmoke;
+  await run('git push');assert.equal(s.stage,3);assert.equal(warDeliveryState(s).workflow,s.workflow);
+  assert.equal(warDeliveryState({stage:1,source:s.source,deployed:true}).deployedSource,s.source);
+});
 test('O workflow inicia limpo, bloqueia falhas e exige verificação da última release',async()=>{
   const {warDeliveryFile,warRunWorkflow,warSmoke}=fixture();
   const source=warDeliveryFile.replace('  //','  if(request.path==="/ready")return {status:200,body:"pronto"};\n  //');
