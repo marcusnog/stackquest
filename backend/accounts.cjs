@@ -13,12 +13,14 @@ async function json(req,max){
   try{const value=JSON.parse(Buffer.concat(chunks));if(!value||Array.isArray(value)||typeof value!=='object')throw Error();return value;}
   catch{throw failure(400,'JSON inválido.');}
 }
-function accounts(filename){
+function accounts(filename,{clientId=process.env.GITHUB_CLIENT_ID,clientSecret=process.env.GITHUB_CLIENT_SECRET,githubFetch=fetch}={}){
+  const redirectUri='https://marcusnog.github.io/stackquest/github-callback.html';
   const db=new DatabaseSync(filename);
   db.exec(`PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=3000;
     CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, name TEXT UNIQUE NOT NULL, salt TEXT NOT NULL, verifier TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS sessions(hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),expires INTEGER NOT NULL);
     CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires);
+    CREATE TABLE IF NOT EXISTS github_identities(github_id TEXT PRIMARY KEY,user_id INTEGER UNIQUE NOT NULL REFERENCES users(id));
     CREATE TABLE IF NOT EXISTS progress(user_id INTEGER NOT NULL REFERENCES users(id),key TEXT NOT NULL, value TEXT NOT NULL,version INTEGER NOT NULL, PRIMARY KEY(user_id,key));`);
   const rates=new Map();let hashing=0;
   // Index the completion flags so a public read never scans saved code, diagrams or notes.
@@ -55,9 +57,65 @@ function accounts(filename){
     return {user:session,hash:digest(token)};
   }
   function snapshot(user){
-    return {name:user.name,records:db.prepare('SELECT key,value,version FROM progress WHERE user_id=?').all(user.id)};
+    return {name:user.name,githubLinked:!!db.prepare('SELECT 1 FROM github_identities WHERE user_id=?').get(user.id),records:db.prepare('SELECT key,value,version FROM progress WHERE user_id=?').all(user.id)};
+  }
+  function login(user){
+    const token=randomBytes(32).toString('base64url');
+    db.prepare('DELETE FROM sessions WHERE expires<=?').run(Date.now());
+    db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(token),user.id,Date.now()+expiry);
+    return {...snapshot(user),token};
+  }
+  async function githubIdentity(code,verifier){
+    let token,profile;
+    try{
+      const response=await githubFetch('https://github.com/login/oauth/access_token',{
+        method:'POST',headers:{Accept:'application/json'},signal:AbortSignal.timeout(6000),
+        body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,redirect_uri:redirectUri,code,code_verifier:verifier})
+      });
+      if(!response.ok)throw failure(502,'O GitHub está indisponível. Tente novamente.');
+      token=(await response.json()).access_token;
+      if(typeof token!=='string'||!token)throw failure(401,'Autorização inválida ou expirada. Tente entrar novamente.');
+      const res=await githubFetch('https://api.github.com/user',{headers:{Authorization:'Bearer '+token,Accept:'application/vnd.github+json','User-Agent':'StackQuest'},signal:AbortSignal.timeout(6000)});
+      if(!res.ok)throw failure(502,'Não foi possível consultar seu perfil no GitHub.');
+      profile=await res.json();
+    }catch(e){throw e.status?e:failure(502,'Não foi possível conectar ao GitHub.');}
+    if(!Number.isSafeInteger(profile?.id)||profile.id<1||typeof profile.login!=='string'||!/^[-a-zA-Z0-9]{1,39}$/.test(profile.login))throw failure(502,'Perfil do GitHub inválido.');
+    return {id:String(profile.id),name:profile.login.toLowerCase().slice(0,32)};
   }
   async function route(req,send){
+    if(req.method==='GET'&&req.url==='/api/auth/github/config')
+      return send(200,clientId&&clientSecret?{enabled:true,clientId,redirectUri}:{enabled:false});
+    if(req.method==='POST'&&['/api/auth/github/login','/api/auth/github/link'].includes(req.url)){
+      if(!clientId||!clientSecret)throw failure(503,'A entrada pelo GitHub ainda não está disponível.');
+      const link=req.url.endsWith('/link');
+      if(link)identity(req);
+      const {code,verifier}=await json(req,2048);
+      if(typeof code!=='string'||!/^[a-zA-Z0-9_-]{1,256}$/.test(code)||typeof verifier!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(verifier))throw failure(400,'Autorização inválida.');
+      throttle(req);
+      const gh=await githubIdentity(code,verifier);
+      db.exec('BEGIN IMMEDIATE');
+      try{
+        let user=db.prepare('SELECT u.id,u.name FROM users u JOIN github_identities g ON u.id=g.user_id WHERE g.github_id=?').get(gh.id);
+        if(link){
+          const current=identity(req).user;
+          if(user && user.id!==current.id)throw failure(409,'Este GitHub já está vinculado a outra conta StackQuest.');
+          if(!user && db.prepare('SELECT 1 FROM github_identities WHERE user_id=?').get(current.id))throw failure(409,'Esta conta já possui um GitHub vinculado.');
+          if(!user)db.prepare('INSERT INTO github_identities VALUES(?,?)').run(gh.id,current.id);
+        }else if(!user){
+          let name=gh.name.length>=3?gh.name:'gh-'+gh.name;
+          if(db.prepare('SELECT 1 FROM users WHERE name=?').get(name)){
+            name='gh-'+gh.id;
+            while(db.prepare('SELECT 1 FROM users WHERE name=?').get(name))name='gh-'+randomBytes(8).toString('hex');
+          }
+          const result=db.prepare("INSERT INTO users(name,salt,verifier) VALUES(?,'','')").run(name);
+          user={id:result.lastInsertRowid,name};
+          db.prepare('INSERT INTO github_identities VALUES(?,?)').run(gh.id,user.id);
+        }
+        const result=link?{githubLinked:true}:login(user);
+        db.exec('COMMIT');
+        return send(200,result);
+      }catch(e){db.exec('ROLLBACK');throw e;}
+    }
     if(req.method==='GET'&&req.url.split('?')[0]==='/api/ranking'){
       const pageText=new URL(req.url,'http://localhost').searchParams.get('page')??'1';
       if(!/^[1-9]\d{0,7}$/.test(pageText))throw failure(400,'Página inválida.');
@@ -80,11 +138,8 @@ function accounts(filename){
           const result=db.prepare('INSERT OR IGNORE INTO users(name,salt,verifier) VALUES(?,?,?)').run(name,salt,key.toString('hex'));
           if(!result.changes)throw failure(409,'Esse nome de usuário já está em uso.');
           user={id:result.lastInsertRowid,name};
-        }else if(!user||!timingSafeEqual(Buffer.from(user.verifier,'hex'),key))throw failure(401,'Usuário ou senha incorretos.');
-        const token=randomBytes(32).toString('base64url');
-        db.prepare('DELETE FROM sessions WHERE expires<=?').run(Date.now());
-        db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(token),user.id,Date.now()+expiry);
-        send(creating?201:200,{...snapshot(user),token});
+        }else if(!user?.verifier||!timingSafeEqual(Buffer.from(user.verifier,'hex'),key))throw failure(401,'Usuário ou senha incorretos.');
+        send(creating?201:200,login(user));
       }finally{hashing--;}
       return;
     }

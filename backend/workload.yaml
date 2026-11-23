@@ -22,6 +22,8 @@ spec:
           image: docker.io/library/node:24-alpine
           command: ["node", "/app/server.cjs"]
           env: [{name: DATA_FILE, value: /data/stackquest.sqlite}]
+          envFrom:
+            - secretRef: {name: stackquest-github-oauth, optional: true}
           ports: [{name: http, containerPort: 8080}]
           resources:
             requests: {cpu: 10m, memory: 32Mi}
