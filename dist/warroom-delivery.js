@@ -50,6 +50,27 @@ async function warRunWorkflow(source,steps,log){
   if(!verified)throw Error(deployed?'A release subiu. Falta verificar /ready na VPS.':'O job terminou sem publicar e confirmar uma release.');
 }
 const warPipelineFile='.github/workflows/socorro.yaml';
+function warTestLocation(source,test){
+  const lines=source.split('\n');
+  let exact=-1,prefix=-1,defaultReturn=-1,marker=-1,handler=0;
+  for(const [i,line] of lines.entries()){
+    const code=line.trimStart();
+    if(code.startsWith('// Acrescente aqui a rota de prontidão'))marker=i;
+    if(/^(?:\/\/|\/\*|\*)/.test(code))continue;
+    if(/\bfunction\s+handle\s*\(/.test(code))handler=i;
+    if(/^return\b/.test(code))defaultReturn=i;
+    const route=code.match(/(?:\.path\s*===?\s*|\bcase\s+)(["'])([^"']*)\1/);
+    if(exact<0&&route?.[2]===test.path)exact=i;
+    const broad=code.match(/\.path\.startsWith\(\s*(["'])([^"']*)\1/);
+    if(prefix<0&&broad&&test.path.startsWith(broad[2]))prefix=i;
+  }
+  const expected='GET '+test.path+' deve devolver HTTP '+test.status+(Object.hasOwn(test,'body')?' com o corpo “'+test.body+'”.':'.');
+  if(prefix>=0&&(exact<0||prefix<exact))return {line:prefix+1,hint:expected+' Confira se esta condição por prefixo também aceita rotas que deveriam seguir para outro retorno.'};
+  if(exact>=0)return {line:exact+1,hint:expected+' Confira o retorno deste ramo e a ordem das condições anteriores.'};
+  if(test.path==='/ready'&&marker>=0)return {line:marker+1,hint:expected+' Acrescente aqui uma condição para o caminho exato /ready, antes da resposta padrão.'};
+  if(defaultReturn>=0)return {line:defaultReturn+1,hint:expected+(test.status===404?' Confira a resposta padrão para caminhos desconhecidos.':' Verifique se o caminho é tratado antes de chegar a este retorno.')};
+  return {line:handler+1,hint:expected+' Comece pelo roteamento de handle e acompanhe o caminho até o retorno.'};
+}
 const warStarterWorkflow=warWorkflowHeader+'\n      - run: npm test\n      # Acrescente o deploy e a verificação.';
 
 function warPipelineSteps(workflow){

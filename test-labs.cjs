@@ -16,7 +16,7 @@ function fixture() {
   for (const file of ['lab-engine.js','lab-guides.js','warroom-delivery.js']) {
     vm.runInContext(readFileSync(join(__dirname,'dist',file),'utf8'),context);
   }
-  return vm.runInContext('({newLab,labCommand,checkLab,labGuides,starterApp,warDeliveryLab,warDeliveryCommand,warRunWorkflow,warSmoke,warDeliveryFile,warDeliveryRun,warDeliveryState,warDeliveryGuide,warPipelineSteps,warPipelineFile})',context);
+  return vm.runInContext('({newLab,labCommand,checkLab,labGuides,starterApp,warDeliveryLab,warDeliveryCommand,warRunWorkflow,warSmoke,warDeliveryFile,warDeliveryRun,warDeliveryState,warDeliveryGuide,warPipelineSteps,warPipelineFile,warTestLocation})',context);
 }
 
 test('A doca verifica o código remoto e exige um novo deploy após o teste local',async()=>{
@@ -33,12 +33,13 @@ test('A doca verifica o código remoto e exige um novo deploy após o teste loca
 test('O terminal entrega resultados individuais e só ativa a release após preparar o serviço',async()=>{
   const {warDeliveryLab,warDeliveryFile,warDeliveryCommand}=fixture();
   const lab=warDeliveryLab(warDeliveryFile),rows=[];
-  const result=await warDeliveryCommand(lab,'npm test',(text,level)=>{
+  const result=await warDeliveryCommand(lab,'npm test',(text,level,testCase)=>{
     assert.equal(lab.lastTest,null);
-    rows.push({text,level});
+    rows.push({text,level,testCase});
   });
   assert.equal(rows.filter(row=>row.level==='pass').length,4);
   assert.match(rows.find(row=>row.level==='error').text,/FAIL.*GET \/ready .*esperado 200 pronto/);
+  assert.deepEqual(rows.filter(row=>row.testCase).map(row=>row.testCase.path),['/ready']);
   assert.equal(result.level,'error');
   assert.match(result.text,/4\/5/);
   const host=lab.hosts['web-01'],before=host.release,steps=[];
@@ -48,6 +49,18 @@ test('O terminal entrega resultados individuais e só ativa a release após prep
   });
   assert.equal(steps.length,3);
   assert.equal(host.release,before+1);
+});
+
+test('A dica localiza a rota no rascunho atual e distingue a condição por prefixo da resposta padrão',()=>{
+  const {warDeliveryFile,warTestLocation}=fixture();
+  const ready={path:'/ready',status:200,body:'pronto'},unknown={path:'/readyz',status:404};
+  const locate=(source,test)=>source.split('\n')[warTestLocation(source,test).line-1];
+  assert.match(locate(warDeliveryFile,ready),/Acrescente aqui/);
+  const edited='// if (request.path === "/ready")\n\n'+warDeliveryFile.replace('  // Acrescente','  if(request.path === "/ready") return {status:503};\n  // Acrescente');
+  assert.match(locate(edited,ready),/return \{status:503/);
+  assert.match(locate(edited,unknown),/status: 404/);
+  assert.match(locate(edited.replace('request.path === "/ready") return','request.path.startsWith("/ready")) return'),unknown),/startsWith/);
+  assert.match(warTestLocation(edited,ready).hint,/HTTP 200.*pronto/);
 });
 
 test('O terminal do notebook migra rascunhos e exige testes, publicação e confirmação antes do push',async()=>{

@@ -47,6 +47,11 @@ export function openEditor(parent, files, initial, save, cursor) {
       if(view.state.readOnly !== value) view.dispatch({effects:access.reconfigure(EditorState.readOnly.of(value))});
     },
     search() {openSearchPanel(view);},
+    goToLine(number) {
+      const line=view.state.doc.line(number);
+      view.dispatch({selection:{anchor:line.from},effects:EditorView.scrollIntoView(line.from,{y:'center'})});
+      view.focus();
+    },
     focus() {view.focus();},
     destroy() {view.destroy();}
   };

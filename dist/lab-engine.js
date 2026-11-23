@@ -155,14 +155,14 @@ async function runTests(s,progress){
     if(ok)passed++;
     const line=(ok?'PASS':'FAIL')+'  GET '+t.path+'  → '+result.status+' '+result.body+(ok?'':'  (esperado '+t.status+' '+(t.body??'')+')');
     lines.push(line);
-    return progress?.(line,ok?'pass':'error');
+    return progress?.(line,ok?'pass':'error',ok?undefined:t);
   }
   if(progress){
     await progress('Executando '+tests.length+' testes de app.js…');
     for(const [i,request] of requests.entries()){
       let result;
       try{[result]=await runProgram(source,[request]);}
-      catch(error){throw Error('GET '+request.path+' · '+error.message);}
+      catch(error){throw Object.assign(Error('GET '+request.path+' · '+error.message),{testCase:tests[i]});}
       await record(result,i);
     }
   }else (await runProgram(source,requests)).forEach(record);
