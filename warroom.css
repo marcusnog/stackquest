@@ -33,6 +33,8 @@
 #wr-coach::after{content:'';position:absolute;bottom:-6px;left:50%;width:9px;height:9px;background:#203940;border:solid #ab956a;border-width:0 1px 1px 0;transform:rotate(45deg)}
 #wr-coach p{margin:3px 0 0}#wr-skip{flex:none}
 .wr-game .wr-guided{outline:3px solid #ffd681;outline-offset:2px}
+.wr-copper-pin{display:none}.wr-guide-copper .wr-copper-pin{display:inline}.wr-guide-copper #wr-drop{visibility:hidden}
+#wr-notebook #wr-coach,.pg-side #wr-coach{margin:10px 0 12px;box-shadow:0 4px 12px #09192155}
 #wr-decision-tip{border-left:3px solid #b98d49;padding-left:10px}#wr-decision-tip strong{display:block}
 @media(max-width:560px){#wr-coach:not([hidden]){align-items:flex-start;flex-direction:column;gap:4px}#wr-coach #wr-skip{align-self:flex-end}}
 #wr-player,#wr-light-carrier{transform:var(--wr-at)}

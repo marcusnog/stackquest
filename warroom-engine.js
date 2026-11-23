@@ -99,10 +99,14 @@ function warGather(state){
   state.materials[key]++;
   return key;
 }
-function warPrint(state,code){
+function warRecipeFromCode(code){
   const args=/^imprimir\s*\(\s*(["'])([a-z]+)\1\s*,\s*([1-9]\d*)\s*\)\s*;?$/.exec(code.trim());
-  if(!args)return {ok:false,text:'Use imprimir("material", camadas). Coloque o material entre aspas e use um número inteiro positivo.'};
-  const item=warRecipes.find(r=>r.material===args[2]&&r.layers===Number(args[3]));
+  if(!args)return null;
+  return warRecipes.find(r=>r.material===args[2]&&r.layers===Number(args[3]));
+}
+function warPrint(state,code){
+  const item=warRecipeFromCode(code);
+  if(item===null)return {ok:false,text:'Use imprimir("material", camadas). Coloque o material entre aspas e use um número inteiro positivo.'};
   if(!item)return {ok:false,text:'Essa combinação não tem molde. Confira o material e o número de camadas no caderno.'};
   if(state.printed.includes(item.id))return {ok:false,text:item.name+' já está na mochila.'};
   const material=warMaterials[item.material],balance=state.materials[item.material];
@@ -174,16 +178,39 @@ function warTutorialStep(state){
   if(state.stage!==0)return null;
   const target=warTarget(state),routing=state.collected?3:1;
   if(warReach(state,target))return {step:state.collected?3:2,key:'use'};
+  const key=warGuideDirection(state,(x,y)=>warNear({x,y},target.pos));
+  return key?{step:routing,key}:null;
+}
+function warGuideDirection(state,arrived){
   const queue=[[state.x,state.y,null]],seen=new Set([state.x+','+state.y]);
+  const hazard=warHazard(state);
   for(const [x,y,first] of queue){
     for(const [key,[dx,dy]] of Object.entries(warDirections)){
       const nx=x+dx,ny=y+dy,id=nx+','+ny;
       if(seen.has(id)||!warWalkable(nx,ny))continue;
-      if(warNear({x:nx,y:ny},target.pos))return {step:routing,key:first||key};
+      if(state.hull==='breached'&&warIce.some(([cx,cy])=>cx===nx&&cy===ny))continue;
+      if(!first&&hazard?.remaining===1&&hazard.cells.some(([cx,cy])=>cx===nx&&cy===ny))continue;
+      if(arrived(nx,ny))return first||key;
       seen.add(id);queue.push([nx,ny,first||key]);
     }
   }
   return null;
+}
+function warTrackerStep(state,notebookOpen,code){
+  const recipe=warRecipes.find(r=>r.id==='tracker');
+  if(!warChapters[state.stage]||state.printed.includes(recipe.id))return null;
+  const [cx,cy]=warMaterials[recipe.material].pos,coord=warCoord([cx,cy]);
+  const stock=state.materials[recipe.material],command='imprimir("'+recipe.material+'", '+recipe.layers+')';
+  if(stock<recipe.layers){
+    if(notebookOpen)return {step:2,key:'shut',text:'Ainda falta cobre. Feche o notebook para voltar ao depósito em '+coord+'.'};
+    if(state.x===cx&&state.y===cy)return {step:2,key:'gather',text:'Você tem '+stock+' de '+recipe.layers+' cobres. Pressione E ou toque em Recolher cobre para guardar uma unidade.'};
+    const key=warGuideDirection(state,(x,y)=>x===cx&&y===cy);
+    if(!key)return {step:1,key:'wait',text:'Espere um pulso com Q para abrir caminho até o cobre.'};
+    return {step:1,key,text:'Vá até o cobre em '+coord+'. Você está em '+warCoord([state.x,state.y])+'.'};
+  }
+  if(!notebookOpen)return {step:3,key:'laptop',text:'Você já tem cobre suficiente. Pressione N ou toque em Abrir notebook na mochila.'};
+  if(warRecipeFromCode(code)!==recipe)return {step:4,key:'code',text:'Digite '+command+' no campo abaixo. A primeira entrada escolhe o material, e a segunda define as camadas.'};
+  return {step:5,key:'print-item',text:'Receita pronta. Pressione Enter ou toque em Imprimir item para usar '+recipe.layers+' cobres e fabricar o rastreador.'};
 }
 function warInteract(state){
   const target=warTarget(state);

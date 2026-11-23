@@ -45,7 +45,7 @@ function warroomPage(drill){
   <aside class="pg-side"><section class="pg-round wr-card"><div class="wr-card-head"><small id="wr-card-no"></small><span aria-hidden="true">✦</span></div><h2 id="wr-title"></h2><p id="wr-radio"></p><small id="wr-time"></small></section><section class="pg-round"><h2>Mochila de Lia</h2><button id="wr-laptop" aria-haspopup="dialog" aria-keyshortcuts="N">Abrir notebook (N)</button><ul id="wr-bag"></ul><p id="wr-distance" hidden></p></section><section class="pg-round"><h2>Diário do plantão</h2><ol id="wr-log"></ol><button id="wr-replay" hidden>Jogar novamente</button></section></aside></div>
   <dialog id="wr-notebook" aria-labelledby="wr-notebook-title"><small>NOTEBOOK DE LIA</small><h2 id="wr-notebook-title">Impressora de campo</h2><p>Recolha os materiais no convés e digite a receita. Cada camada consome uma unidade da mochila.</p>
   <details><summary>Caderno de receitas</summary><ul>${warRecipes.map(r=>'<li><strong>'+r.name+'</strong> · <code>'+r.material+'</code> × '+r.layers+' camadas<br>'+r.use+'<br><span id="wr-stock-'+r.material+'"></span></li>').join('')}</ul></details>
-  <form id="wr-print"><label for="wr-code">Código da impressora</label><input id="wr-code" placeholder='imprimir("material", camadas)' spellcheck="false" autocomplete="off" autocapitalize="off" maxlength="120" required><p id="wr-print-result" role="status"></p><div class="wr-actions"><button class="pg-primary">Imprimir item</button><button type="button" id="wr-shut">Fechar notebook</button></div></form></dialog>
+  <form id="wr-print"><label for="wr-code">Código da impressora</label><input id="wr-code" placeholder='imprimir("material", camadas)' spellcheck="false" autocomplete="off" autocapitalize="off" maxlength="120" required><p id="wr-print-result" role="status"></p><div class="wr-actions"><button id="wr-print-item" class="pg-primary">Imprimir item</button><button type="button" id="wr-shut">Fechar notebook</button></div></form></dialog>
   <dialog id="wr-intro" aria-labelledby="wr-intro-title" aria-describedby="wr-intro-copy"><small>RAVI · CANAL DA PONTE</small><h2 id="wr-intro-title">Seu primeiro plantão</h2><p id="wr-intro-copy"></p><div class="wr-actions"><button id="wr-start" type="button" autofocus></button><button id="wr-dismiss" type="button">Pular tutorial</button></div></dialog>
   <dialog id="wr-dialog" aria-labelledby="wr-question"><form id="wr-puzzle"><small id="wr-terminal"></small><h2 id="wr-question"></h2><p id="wr-evidence"></p><p id="wr-decision-tip" hidden><strong>Tutorial · 4 de 4</strong> Divida os erros pelo total de pedidos de cada revisão. Selecione sua decisão e clique em Aplicar decisão.</p><div id="wr-input"></div><p role="status" id="wr-feedback"></p><div class="wr-actions"><button type="submit" class="pg-primary">Aplicar decisão</button><button id="wr-close" type="button">Voltar à sala</button></div></form></dialog></div></div>`;
   const root=main.querySelector('.wr-game'),el=id=>root.querySelector('#wr-'+id);
@@ -60,9 +60,12 @@ function warroomPage(drill){
   const persist=()=>{if(!practice)save(lesson,{warroom:{...state,field:{...state.field,turns:[...state.field.turns]}}});};
   const stepMs=145,controls=warHeldInput(move,stepMs);
   const notebook=el('notebook');
+  let trackerSuccess=false;
   function openNotebook(){
-    controls.stop();el('print-result').textContent='';notebook.showModal();el('code').focus();sound.cue('open');
+    controls.stop();el('print-result').textContent='';notebook.showModal();el('code').focus();drawTutorial();sound.cue('open');
   }
+  el('code').oninput=drawTutorial;
+  notebook.onclose=()=>{trackerSuccess=false;if(board.isConnected)draw();};
   el('laptop').onclick=openNotebook;
   function gather(){
     controls.stop();
@@ -74,7 +77,9 @@ function warroomPage(drill){
   el('shut').onclick=()=>notebook.close();
   el('print').onsubmit=e=>{
     e.preventDefault();
+    const learning=tutorial==='active'&&!state.printed.includes('tracker');
     const result=warPrint(state,el('code').value);
+    if(learning&&result.ok&&state.printed.includes('tracker'))trackerSuccess=true;
     el('print-result').textContent=result.text;sound.cue(result.ok?'pickup':'error');
     if(result.ok){persist();draw();el('code').select();plantaoAnimate(el('bag'),'collect');}
   };
@@ -113,35 +118,53 @@ function warroomPage(drill){
   function showIntro(){
     controls.stop();
     const first=state.stage===0;
+    const teachPrinter=!practice&&warChapters[state.stage]&&!state.printed.includes('tracker');
     el('intro-title').textContent=first?'Seu primeiro plantão':'Controles do plantão';
     el('intro-copy').textContent=first?'Lia, o checkout da nave começou a falhar. Vou te guiar pelo rádio até o relatório do canário. Depois, você decide o que fazer no terminal de telemetria.':'Ande com WASD, com as setas do teclado ou com os botões do convés. Fique na casa marcada ou ao lado dela e use Espaço ou o botão de ação. Seu próximo objetivo aparece abaixo do mapa.';
     el('start').textContent=first?'Ativar guia pelo rádio':'Voltar ao plantão';
     el('dismiss').hidden=!first;
+    if(teachPrinter){
+      el('intro-copy').textContent='Lia, vamos fabricar seu primeiro rastreador. Vou te guiar até o cobre e acompanhar sua primeira impressão no notebook. Depois, o rastreador mostra a distância até o objetivo do plantão.';
+      el('start').textContent='Guiar primeira impressão';el('dismiss').hidden=false;
+    }
     intro.showModal();
   }
   function closeIntro(active){
-    if(state.stage===0)setTutorial(active?'active':'skipped');
+    if(!practice&&warChapters[state.stage]&&(state.stage===0||!state.printed.includes('tracker')))setTutorial(active?'active':'skipped');
     intro.close();drawMap();board.focus({preventScroll:true});
   }
   el('help').onclick=showIntro;
   el('start').onclick=()=>closeIntro(true);
   el('dismiss').onclick=()=>closeIntro(false);
   intro.oncancel=e=>{e.preventDefault();closeIntro(false);};
-  el('skip').onclick=()=>{setTutorial('skipped');drawMap();board.focus({preventScroll:true});};
+  el('skip').onclick=()=>{setTutorial('skipped');trackerSuccess=false;draw();(notebook.open?el('code'):board).focus({preventScroll:true});};
   function drawTutorial(){
-    const tip=tutorial==='active'&&warTutorialStep(state);
+    const teaching=tutorial==='active'&&!practice;
+    const tracker=teaching&&(trackerSuccess&&notebook.open?{step:5,key:'shut',text:'Rastreador na mochila! Feche o notebook para ver a distância até o objetivo.'}:warTrackerStep(state,notebook.open,el('code').value));
+    const tip=tracker||(teaching&&!notebook.open&&warTutorialStep(state));
     coach.hidden=!tip;el('help').hidden=!!tip;
     const previous=root.querySelector('.wr-guided');
-    const next=tip&&(tip.key==='use'?el('use'):pad.querySelector('[data-move="'+tip.key+'"]'));
+    const direction=tip&&arrows[tip.key];
+    const next=tip&&(direction?pad.querySelector('[data-move="'+tip.key+'"]'):el(tip.key));
     if(previous!==next){previous?.classList.remove('wr-guided');if(next)next.classList.add('wr-guided');}
+    root.classList.toggle('wr-guide-copper',!!tracker&&tracker.step===1);
     if(!tip)return;
-    const label='RAVI · TUTORIAL '+tip.step+' DE 4';
-    const instruction=tip.key==='use'?(state.collected?'O terminal está ao alcance. Pressione Espaço ou toque em Abrir terminal.':'O relatório está ao alcance. Pressione Espaço ou toque em Coletar item para guardá-lo na mochila.'):
-      (state.collected?'Leve o relatório ao terminal de telemetria em C1.':'Aproxime-se do relatório marcado em B4.')+' Use '+arrows[tip.key]+' ou toque na seta destacada.';
+    const anchor=notebook.open?(tip.key==='code'?el('print').querySelector('label'):el('shut').parentElement):
+      tracker&&!direction?next:root.querySelector('.wr-controls');
+    if(coach.nextElementSibling!==anchor)anchor.before(coach);
+    const label=tracker?(trackerSuccess?'RASTREADOR IMPRESSO':'PRIMEIRO RASTREADOR · '+tip.step+' DE 5'):'RAVI · TUTORIAL '+tip.step+' DE 4';
+    const instruction=tracker?tip.text+(direction?' Use '+direction+' ou toque na seta destacada.':''):
+      tip.key==='use'?(state.collected?'O terminal está ao alcance. Pressione Espaço ou toque em Abrir terminal.':'O relatório está ao alcance. Pressione Espaço ou toque em Coletar item para guardá-lo na mochila.'):
+      (state.collected?'Leve o relatório ao terminal de telemetria em C1.':'Aproxime-se do relatório marcado em B4.')+' Use '+direction+' ou toque na seta destacada.';
+    if(tracker&&!notebook.open)el('guide').textContent='Fabrique o primeiro rastreador de campo.';
     if(el('coach-step').textContent!==label)el('coach-step').textContent=label;
     if(el('coach-tip').textContent!==instruction){
       el('coach-tip').textContent=instruction;
       if(!reduced.matches)coach.animate([{opacity:.65},{opacity:1}],{duration:160});
+    }
+    if(tracker&&previous!==next){
+      const bounds=next.getBoundingClientRect();
+      if(bounds.top<0||bounds.bottom>window.innerHeight)next.scrollIntoView({block:'center',behavior:'instant'});
     }
   }
   function pose(frame){
@@ -285,7 +308,7 @@ function warroomPage(drill){
       }else{drawMap();el('status').textContent='';}
       if(hazard?.remaining===1)impact();else sound.cue('step');
       stride=stride===1?2:1;
-      act(stride,stepMs*.68);return true;
+      act(stride,stepMs*.68);return !(tutorial==='active'&&el('gather').classList.contains('wr-guided'));
     }else{
       clearTimeout(idleTimer);pose(0);drawMap();
       if(previousFacing!==state.facing||beat!==state.field.beat)persist();
@@ -432,7 +455,7 @@ function warroomPage(drill){
         'Reserve a chave primeiro. Confirme a transação antes de liberar a mensagem com ACK.';
       return;
     }
-    const graduated=stage===0&&tutorial==='active';
+    const graduated=stage===0&&tutorial==='active'&&state.printed.includes('tracker');
     sound.cue(state.power==='dark'?'blackout':state.hull==='breached'?'quake':'success');
     if(graduated)setTutorial('done');
     persist();dialog.close();draw();if(state.hull==='breached')root.classList.add('wr-impacting');el('status').textContent=(graduated?'Tutorial concluído. ':'')+warChapters[stage].result;
