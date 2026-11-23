@@ -123,7 +123,7 @@ const {plantaoMap, plantaoSprite} = (() => {
     const d='M'+sx+' '+sy+'L'+mx+' '+my+' '+ex+' '+ey;
     const lastX=mx===ex&&my===ey?sx:mx,lastY=mx===ex&&my===ey?sy:my;
     const dx=ex-lastX,dy=ey-lastY,angle=Math.atan2(dy,dx)*180/Math.PI;
-    return '<path d="'+d+'" stroke="#37565a" stroke-width="5" fill="none"/><path d="'+d+'" stroke="#ffcf71" stroke-width="2.3" fill="none"/>'+
+    return '<path d="'+d+'" stroke="#37565a" stroke-width="5" fill="none"/><path data-wire="'+a+'-'+b+'" pathLength="1" d="'+d+'" stroke="#ffcf71" stroke-width="2.3" fill="none"/>'+
       '<path transform="translate('+(lastX+dx*.57)+' '+(lastY+dy*.57)+') rotate('+angle+')" d="M-3 -3L4 0L-3 3Z" fill="#fff1aa" stroke="#546459" stroke-width=".8"/>';
   }
   function scenery() {
@@ -171,7 +171,18 @@ const {plantaoMap, plantaoSprite} = (() => {
       '<style>.plantao-map .pt-cell{cursor:pointer;touch-action:manipulation}.plantao-map .pt-cell:focus-visible{outline:none}.plantao-map .pt-cell:is(:focus-visible,:hover) .pt-rim{stroke:#123c50}.plantao-map .pt-cell:is(:focus-visible,:hover) .pt-ring{stroke:#d5ffff;stroke-width:2.8}.plantao-map .pt-cell:focus-visible .pt-ring{stroke-dasharray:6 2}</style>'+
       '<g aria-hidden="true" pointer-events="none">'+terrain+wires.map(e=>wire(e.from,e.to)).join('')+'</g>'+keys+'</svg>';
   }
+  const hardware={
+    cpu:cube(-12,-12,0,24,24,3,'#e5bf76','#ac8348','#916b3d')+
+      cube(-10,-10,3,20,20,3,'#41756c','#315b54','#264e48')+
+      cube(-6,-6,6,12,12,4,'#dfede2','#a8c2c3','#839dad'),
+    ram:cube(-19,-2,3,38,4,12,'#85bd9d','#499273','#396b5f')+
+      [-15,-7,1,9].map(x=>front(x,2,7,6,6,'#213d44')+front(x,2,3,5,2,'#ffce75')).join(''),
+    ssd:cube(-16,-10,0,32,20,6,'#9fb8c7','#546d86','#344658')+
+      cube(-11,-7,6,23,14,1,'#e5ebe3','#c4d3cd','#93ada8')+
+      cube(-9,-4,7,10,2,1,'#4d7d88','#41616c','#34505e')+front(-10,10,1,9,2,'#e2b55c')
+  };
   function plantaoSprite(type) {
+    if(Object.hasOwn(hardware,type))return '<svg class="plantao-sprite" viewBox="-28 -22 56 40" aria-hidden="true" focusable="false">'+hardware[type]+'</svg>';
     const shape=Object.hasOwn(blocks,type)?blocks[type]:'';
     return '<svg class="plantao-sprite" xmlns="http://www.w3.org/2000/svg" viewBox="-33 -49 66 68" width="48" height="48" aria-hidden="true" focusable="false">'+shape+'</svg>';
   }
