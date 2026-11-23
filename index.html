@@ -20,7 +20,7 @@
   <script src="ai-practice.js" defer></script>
   <script src="lab-guides.js" defer></script>
   <script src="lab-runner.js" defer></script>
-  <script src="lab-engine.js?v=live1" defer></script>
+  <script src="lab-engine.js?v=diagnostico1" defer></script>
   <script src="labs.js?v=janelas1" defer></script>
   <script src="practice-guides.js" defer></script>
   <script src="studio.js?v=20261122-arch1" defer></script>
@@ -45,16 +45,23 @@
   <script src="correio.js?v=turnos2" defer></script>
   <link rel="stylesheet" href="communities.css?v=1">
   <script src="communities.js?v=1" defer></script>
-  <link rel="stylesheet" href="warroom.css?v=live1">
+  <link rel="stylesheet" href="warroom.css?v=diagnostico1">
   <script src="warroom-engine.js?v=ide-protecao1" defer></script>
   <script src="warroom-field.js?v=campo1" defer></script>
   <script src="warroom-scenes.js?v=janelas1" defer></script>
   <script src="warroom-map.js?v=ide-protecao1" defer></script>
   <script src="warroom-audio.js?v=pulsos1" defer></script>
-  <script src="warroom.js?v=live1" defer></script>
-  <script src="warroom-delivery.js?v=live1" defer></script>
+  <script src="warroom.js?v=diagnostico1" defer></script>
+  <script src="warroom-delivery.js?v=diagnostico1" defer></script>
   <script src="app.js?v=study-menu1" defer></script>
   <script src="blueprint.js" defer></script>
+  <script>
+    if(new URLSearchParams(location.search).get('previa')==='1'){
+      document.documentElement.classList.add('study-preview');
+      const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='previa.css';document.head.append(sheet);
+      document.addEventListener('DOMContentLoaded',()=>{document.getElementById('preview-return').hidden=false;});
+    }
+  </script>
 </head>
 <body>
   <a class="skip" href="#main">Pular para o conteúdo</a>
@@ -65,6 +72,7 @@
     <div class="profile" id="profile" hidden></div>
   </aside>
   <div class="shell">
+    <div id="preview-return" class="preview-return" hidden><a href="previa.html#central">Protótipo · Voltar à central de missões</a></div>
     <header class="top"><div class="crumb"><span data-icon="panel"></span><span class="crumb-home">Workspace</span><span class="slash">/</span><b id="crumb"></b></div><div class="top-tools"><div id="streak"></div><a href="#aparencia" class="look-link">Aparência</a><a href="#conta" id="account-link">Entrar</a></div></header>
     <main id="main" tabindex="-1"></main>
   </div>

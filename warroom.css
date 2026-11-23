@@ -119,6 +119,8 @@
 .wr-shell-maximized #wr-shell-log{flex:1;min-height:3em;max-height:none}
 #wr-shell-log [data-level="pass"]{color:#a7e4c4}
 #wr-shell-log [data-level="error"]{color:#ffd5c9;background:#522e30;font-weight:700}
+#wr-shell-log button{max-width:100%;min-height:44px;border:1px solid #a76e65;border-radius:4px;padding:4px 8px;color:#ffd5c9;background:#522e30;font:inherit;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:3px}
+#wr-shell-log button:hover,#wr-shell-log button:focus-visible{background:#673a38;outline-color:#ffcf97}
 #wr-command{display:flex;align-items:stretch;gap:8px}
 #wr-command label{align-self:center;white-space:nowrap}
 #wr-command button{flex:none;width:auto;margin:0}

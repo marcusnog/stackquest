@@ -71,7 +71,7 @@ function warroomPage(drill,startDelivery=false){
   const persist=()=>{if(!practice)save(lesson,{warroom:{...state,field:{...state.field,turns:[...state.field.turns]}}});};
   const stepMs=145,controls=warHeldInput(move,stepMs);
   const notebook=el('notebook');
-  let trackerSuccess=false,editor=null;
+  let trackerSuccess=false,editor=null,testHint=null;
   const recipeFile='receita.js';
   let file=recipeFile,app='home',busy=false,quiet=false,closing=0;
   let delivery=warDeliveryState(record.warDelivery),lab=warDeliveryLab(delivery.source);
@@ -83,6 +83,7 @@ function warroomPage(drill,startDelivery=false){
   function changeCode(name,value){
     if(files[name]===value)return;
     files[name]=value;
+    testHint=null;
     if(name===recipeFile)saveDraft();
     else{
       if(name==='app.js'){delivery.source=value;delivery.stage=0;delivery.failed=false;lab.lastTest=null;}
@@ -104,11 +105,12 @@ function warroomPage(drill,startDelivery=false){
   },true);
   function loadEditor(){
     if(editor||app==='home')return;
-    import('./vendor/editor.js').then(({openEditor})=>{
+    import('./vendor/editor.js?v=diagnostico1').then(({openEditor})=>{
       if(!notebook.isConnected||!notebook.open||app==='home'||editor)return;
       const focused=document.activeElement===source;
       editor=openEditor(el('code'),files,file,changeCode,cursor);editor.lock(busy);source.hidden=true;el('find').hidden=false;
-      if(focused)editor.focus();
+      if(focused&&testHint)editor.goToLine(testHint.line);
+      else if(focused)editor.focus();
     }).catch(()=>{source.hidden=false;});
   }
   function openNotebook(project='home'){
@@ -116,6 +118,7 @@ function warroomPage(drill,startDelivery=false){
     switchApp(project);sound.cue('open');
   }
   function selectFile(name){
+    testHint=null;
     file=name;source.value=files[file];source.setAttribute('aria-label','Código de '+file);
     source.placeholder=file===recipeFile?'// Escreva uma receita para a impressora':'';
     el('filename').textContent=file;cursor(1,1);editor?.select(file);
@@ -158,36 +161,54 @@ function warroomPage(drill,startDelivery=false){
     const coach=el('mission-coach');coach.hidden=app!=='delivery';
     notebook.querySelector('.wr-mission-focus')?.classList.remove('wr-mission-focus');
     if(coach.hidden)return;
-    const [title,text,target]=warDeliveryGuide(delivery,file);
+    const [title,text,target]=testHint?['app.js · linha '+testHint.line,testHint.hint,'code']:warDeliveryGuide(delivery,file);
     if(coach.querySelector('strong').textContent!==title)coach.querySelector('strong').textContent=title;
-    const copy=coach.querySelector('p');copy.hidden=quiet;if(copy.textContent!==text)copy.textContent=text;
-    el('toggle-coach').textContent=quiet?'Mostrar dica':'Ocultar dica';
+    const copy=coach.querySelector('p');copy.hidden=quiet&&!testHint;if(copy.textContent!==text)copy.textContent=text;
+    el('toggle-coach').textContent=testHint?'Voltar à missão':quiet?'Mostrar dica':'Ocultar dica';
     el('again').hidden=delivery.stage!==3;
     const anchor=el(({terminal:'command',files:'files',code:'code',done:'again'})[target]);
     if(coach.nextElementSibling!==anchor)anchor.before(coach);
-    if(!quiet)anchor.classList.add('wr-mission-focus');
+    if(!quiet||testHint)anchor.classList.add('wr-mission-focus');
   }
-  el('toggle-coach').onclick=()=>{quiet=!quiet;paintMission();};
+  el('toggle-coach').onclick=()=>{if(testHint)testHint=null;else quiet=!quiet;paintMission();};
   const output=el('shell-log'),execute=el('command').querySelector('button');
-  function log(text,level){
+  function inspectTest(test){
+    setTerminalMaximized(false);
+    selectFile('app.js');
+    testHint=warTestLocation(files[file],test);
+    paintMission();
+    if(editor)editor.goToLine(testHint.line);
+    else{
+      const offset=source.value.split('\n').slice(0,testHint.line-1).join('\n').length+(testHint.line>1?1:0);
+      source.focus();source.setSelectionRange(offset,offset);cursor(testHint.line,1);
+    }
+    el('mission-coach').scrollIntoView({block:'nearest'});
+  }
+  function log(text,level,test){
     const follow=output.scrollHeight-output.clientHeight-output.scrollTop<=4;
     const entry=document.createElement('span');
     if(level)entry.dataset.level=level;
-    entry.textContent=String(text).slice(-8999)+'\n';
+    if(test){
+      const jump=document.createElement('button');
+      jump.type='button';jump.textContent=String(text).slice(0,8800)+' · Ver em app.js';
+      jump.onclick=()=>inspectTest(test);
+      entry.append(jump,'\n');
+    }else entry.textContent=String(text).slice(-8999)+'\n';
     output.append(entry);
     while(output.textContent.length>9000)output.firstChild.remove();
     if(follow)output.scrollTop=output.scrollHeight;
   }
-  async function reportStep(text,level){
-    log(text,level);
+  async function reportStep(text,level,test){
+    log(text,level,test);
     await new Promise(resolve=>setTimeout(resolve,160));
   }
   el('command').onsubmit=async e=>{
     e.preventDefault();const line=el('command-line'),cmd=line.value.trim();if(busy||!cmd)return;
     busy=true;editor?.lock(true);source.readOnly=true;line.readOnly=true;execute.disabled=true;execute.textContent='Executando…';
+    if(testHint){testHint=null;paintMission();}
     log('$ '+cmd);line.value='';
     try{await warDeliveryRun(delivery,lab,cmd,reportStep);}
-    catch(error){log('ERRO › '+error.message,'error');}
+    catch(error){log('ERRO › '+error.message,'error',error.testCase);}
     finally{
       busy=false;
       if(notebook.isConnected){
