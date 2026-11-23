@@ -1,5 +1,5 @@
 // The drawing uses only fixed artwork, validated counts and palette indices derived from job IDs.
-function correioStation(frame = {}, warehouseOnly = false) {
+function correioStation(frame = {}, warehouseOnly = false, previousFrame) {
   const waiting = Array.isArray(frame?.waiting) ? frame.waiting : [];
   const workers = Array.isArray(frame?.workers) ? frame.workers : [];
   const number = n => Number.isSafeInteger(n) && n >= 0 ? n : 0;
@@ -168,6 +168,17 @@ function correioStation(frame = {}, warehouseOnly = false) {
   }
   const short = n => n < 1000 ? String(n) : new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(n);
   const positions=workers.length<=2?[[295,144],[326,167]]:[[296,136],[337,155],[258,156],[300,177]];
+  let movingParcel='';
+  if(previousFrame){
+    const worker=workers.findIndex((id,i)=>occupied(id) && id!==previousFrame.workers[i]);
+    const dispatched=sent>previousFrame.sent;
+    if(dispatched || (worker>=0 && worker<positions.length)){
+      const [x,y]=dispatched?[378,159]:[178,139];
+      const [endX,endY]=dispatched?[467,148]:positions[worker];
+      const art=parcel(dispatched?frame.receipts.at(-1):workers[worker],12);
+      movingParcel=move(x,y,'<g class="cj-transit" style="--travel-x:'+(endX-x)+'px;--travel-y:'+(endY-y)+'px">'+art+'</g>');
+    }
+  }
   let desks='';
   for(let i=0;i<Math.min(positions.length,workers.length);i++) desks+=move(...positions[i],workbench(workers[i],i));
   if(!workers.length) desks=move(295,148,block(-12,-8,0,26,16,3,'#c5ad85','#ab9677','#97866d'));
@@ -175,7 +186,7 @@ function correioStation(frame = {}, warehouseOnly = false) {
   return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+aria+'" class="correio-station" viewBox="0 0 624 280" style="display:block;width:100%;height:auto">'+
     '<style>@media(prefers-reduced-motion:no-preference){.correio-stamp{animation:correio-carimbo 1.5s ease-in-out infinite alternate}@keyframes correio-carimbo{from{transform:translateY(-2px)}to{transform:translateY(2px)}}}</style>'+
     '<rect width="624" height="280" fill="#203e4b"/><path d="M0 213L168 150 376 124 624 205V280H0Z" fill="#1e3946"/>'+
-    depot()+intake()+conveyor(368,169,40,busy>0)+desks+dispatch()+
+    depot()+intake()+conveyor(368,169,40,busy>0)+desks+dispatch()+movingParcel+
     marker(115,178,'NA FILA',short(waiting.length),'#ffda92')+marker(295,201,'EM TRABALHO',short(busy)+'/'+short(workers.length),'#a2edcf')+
     marker(440,192,'DESPACHOS',short(sent),'#a2edcf')+marker(535,174,'REENTREGAS',short(retries),'#ffda92')+'</svg>';
 }
