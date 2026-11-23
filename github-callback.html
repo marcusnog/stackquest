@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Voltando ao StackQuest</title>
+<p>Voltando à sua conta StackQuest…</p>
+<a href="./#conta">Voltar ao login</a>
+<script>
+  const query=new URLSearchParams(location.search);
+  history.replaceState(null,'',location.pathname);
+  try{
+    sessionStorage.setItem('stackquest.github.result',JSON.stringify({
+      state:query.get('state'),code:query.get('code'),error:query.get('error')
+    }));
+    location.replace('./#conta');
+  }catch{
+    document.querySelector('p').textContent='Permita o armazenamento nesta aba para entrar com o GitHub.';
+  }
+</script>
+</html>
