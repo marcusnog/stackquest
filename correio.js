@@ -1,3 +1,4 @@
+let disposeCorreio;
 function correioPage() {
   const lesson = archLessons.tarefas;
   const raw = records.get(lesson)?.correio;
@@ -15,7 +16,8 @@ function correioPage() {
   main.innerHTML = `<div class="pg-game cj-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
     <div class="pg-content"><header class="pg-heading"><div><small>MINIGAME DE MENSAGERIA</small><h1>Correio de Jobs</h1></div><div class="pg-wallet"><span>Turnos concluídos</span><strong id="cj-progress"></strong></div></header>
     <section class="pg-brief"><div><small id="cj-number"></small><h2 id="cj-name"></h2><p id="cj-goal"></p></div><nav class="cj-shifts" aria-label="Turnos da central"></nav></section>
-    <section class="pg-coach cj-coach" aria-label="Guia do primeiro turno"><div id="cj-guidance"><small id="cj-guide-stage"></small><h2 id="cj-guide-title" aria-live="polite"></h2><p id="cj-guide-body"></p></div><div class="pg-guide-tools"><button id="cj-guide-show">Mostrar ação</button><button id="cj-guide-replay" hidden>Rever primeiro turno</button><button id="cj-guide-toggle">Pular guia</button></div></section>
+    <nav class="cj-tour-tools" aria-label="Guia do primeiro turno"><button id="cj-guide-show">Localizar etapa</button><button id="cj-guide-toggle">Pular guia</button></nav>
+    <aside id="cj-guidance" hidden aria-labelledby="cj-guide-title"><small id="cj-guide-stage"></small><button id="cj-guide-dismiss" aria-label="Fechar orientação e pausar o guia" title="Pausar guia (Esc)">×</button><h2 id="cj-guide-title" aria-live="polite"></h2><p id="cj-guide-body"></p><button id="cj-guide-replay" hidden>Rever primeiro turno</button></aside>
     <div class="pg-grid"><section class="pg-play"><header><div class="cj-view" role="group" aria-label="Área da central"><button data-view="operation">Triagem</button><button data-view="depot">Almoxarifado</button></div><span id="cj-clock"></span></header><div class="cj-scene" aria-hidden="true"></div>
     <section class="cj-depot" id="cj-depot" aria-label="Pontos de coleta"><header><h2>Almoxarifado</h2><p>Escolha uma pilha para recolher até duas unidades.</p></header><div class="cj-yard">${correioStation({},true)}<div class="cj-sources"></div></div></section>
     <section class="cj-bag" aria-label="Inventário"><h3>Inventário</h3><div id="cj-slots"></div><button id="cj-open-craft">Abrir oficina</button></section>
@@ -41,25 +43,65 @@ function correioPage() {
   root.querySelector('.cj-sources').innerHTML = materials.map(([id,m])=>'<button data-collect="'+id+'" aria-label="Coletar '+m.name+'"><span class="cj-stack">'+correioItemArt(id)+'</span><strong>'+m.source+'</strong><span class="cj-source-qty"></span></button>').join('');
   el('slots').innerHTML = materials.map(([id,m])=>'<div class="cj-slot">'+correioItemArt(id)+'<span>'+m.name+'</span><b id="cj-bag-'+id+'"></b></div>').join('');
   root.querySelector('.cj-recipes').innerHTML = Object.entries(correioRecipes).map(([id,r])=>'<button data-recipe="'+id+'">'+correioItemArt(id)+'<span>'+r.name+'</span></button>').join('');
-  let target;
+  let target,anchor,layoutFrame=0,reveal=false;
+  const popup=el('guidance'),viewport=window.visualViewport;
+  function positionPopup(){
+    layoutFrame=0;
+    if(!anchor||popup.hidden)return;
+    const left=viewport?.offsetLeft||0,top=viewport?.offsetTop||0;
+    const bounds={left,top,right:left+(viewport?.width||document.documentElement.clientWidth),bottom:top+(viewport?.height||window.innerHeight)};
+    const size=popup.getBoundingClientRect();
+    let rect=anchor.getBoundingClientRect(),pos=correioTipPosition(rect,size,bounds);
+    if(reveal){
+      reveal=false;
+      if(rect.top<top+8||rect.bottom>bounds.bottom-8||pos.top<top+8||pos.top+size.height>bounds.bottom-8){
+        anchor.scrollIntoView({block:'center',inline:'nearest',behavior:'instant'});
+        rect=anchor.getBoundingClientRect();pos=correioTipPosition(rect,size,bounds);
+      }
+      anchor.focus({preventScroll:true});
+    }
+    popup.style.visibility=rect.bottom<=top||rect.top>=bounds.bottom?'hidden':'visible';
+    popup.style.left=pos.left+'px';popup.style.top=pos.top+'px';
+    popup.style.setProperty('--tip-arrow',pos.arrow+'px');
+    popup.classList.toggle('cj-tip-above',pos.onTop);
+  }
+  function schedulePosition(){if(anchor && !layoutFrame)layoutFrame=requestAnimationFrame(positionPopup);}
+  const observer=new ResizeObserver(schedulePosition);
+  observer.observe(root);observer.observe(popup);
+  window.addEventListener('scroll',schedulePosition,true);
+  window.addEventListener('resize',schedulePosition);
+  viewport?.addEventListener('resize',schedulePosition);
+  viewport?.addEventListener('scroll',schedulePosition);
+  disposeCorreio=()=>{
+    observer.disconnect();cancelAnimationFrame(layoutFrame);
+    window.removeEventListener('scroll',schedulePosition,true);
+    window.removeEventListener('resize',schedulePosition);
+    viewport?.removeEventListener('resize',schedulePosition);
+    viewport?.removeEventListener('scroll',schedulePosition);
+  };
   function drawGuide(){
-    if(target){target.classList.remove('pg-guided');target.removeAttribute('aria-describedby');target=null;}
+    const oldAnchor=anchor;
+    if(target){target.classList.remove('pg-guided');target.removeAttribute('aria-describedby');}
+    target=null;anchor=null;
     const guide=correioGuide(state,view,recipeId,run);
     el('guidance').hidden=!state.guideOn;
-    el('guide-show').hidden=!state.guideOn||!guide.target;
+    el('guide-show').hidden=!state.guideOn;
     el('guide-replay').hidden=!state.guideOn||!!guide.target;
     el('guide-toggle').textContent=state.guideOn?(guide.target?'Pular guia':'Fechar guia'):(state.cleared?'Ver guia':'Retomar guia');
-    if(!state.guideOn)return;
+    if(!state.guideOn){reveal=false;return;}
     el('guide-stage').textContent='PRIMEIRO TURNO · '+guide.stage+' / 4';
     el('guide-body').textContent=guide.body;
     if(el('guide-title').textContent!==guide.title){
       el('guide-title').textContent=guide.title;
-      plantaoAnimate(el('guidance'),'area');
+      plantaoAnimate(popup,'area');
     }
     if(guide.target){
       target=root.querySelector(guide.target);
-      target.classList.add('pg-guided');target.setAttribute('aria-describedby','cj-guide-body');
+      target.classList.add('pg-guided');target.setAttribute('aria-describedby','cj-guide-title cj-guide-body');
     }
+    anchor=target||(state.shift===0?el('next'):el('guide-toggle'));
+    if(anchor!==oldAnchor){popup.style.visibility='hidden';reveal=true;}
+    schedulePosition();
   }
   function drawWorkshop() {
     root.querySelector('.cj-scene').hidden = view!=='operation';
@@ -158,8 +200,12 @@ function correioPage() {
   root.onclick = event=>{
     const button = event.target.closest('button');
     if (!button || button.disabled) return;
-    if (button===el('guide-toggle')) {state.guideOn=!state.guideOn;persist();drawGuide();return;}
-    if (button===el('guide-show')) {target?.focus();target?.scrollIntoView({block:'center'});return;}
+    if (button===el('guide-toggle')||button===el('guide-dismiss')) {
+      state.guideOn=!state.guideOn;persist();drawGuide();
+      if(!state.guideOn)el('guide-toggle').focus();
+      return;
+    }
+    if (button===el('guide-show')) {reveal=true;schedulePosition();return;}
     if (button===el('guide-replay')) {startShift(0);return;}
     if (button===el('open-craft')) { root.querySelector('[data-recipe="'+recipeId+'"]').focus(); return; }
     if (button===el('gather')) {
@@ -187,6 +233,9 @@ function correioPage() {
     else if (button===el('back')) seek(state.cursor-1);
     else if (button===el('step')) seek(state.cursor+1,run.frames[state.cursor]);
     else if (button===el('finish')) seek(run.frames.length-1);
+  };
+  root.onkeydown=event=>{
+    if(event.key==='Escape' && state.guideOn){event.preventDefault();el('guide-dismiss').click();}
   };
   draw();
 }
