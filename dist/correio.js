@@ -13,7 +13,7 @@ function correioPage() {
   let run = runCorreio(state.shift,state.config);
   if (Number.isInteger(raw?.cursor)) state.cursor = Math.max(0, Math.min(raw.cursor,run.frames.length-1));
   const persist = ()=>save(lesson,{correio:{...state,area:view,recipe:recipeId}});
-  main.innerHTML = `<div class="pg-game cj-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
+  main.innerHTML = `<div class="pg-game cj-game"><header class="pg-bar"><a href="#central"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
     <div class="pg-content"><header class="pg-heading"><div><small>MINIGAME DE MENSAGERIA</small><h1>Correio de Jobs</h1></div><div class="pg-wallet"><span>Turnos concluídos</span><strong id="cj-progress"></strong></div></header>
     <section class="pg-brief"><div><small id="cj-number"></small><h2 id="cj-name"></h2><p id="cj-goal"></p></div><nav class="cj-shifts" aria-label="Turnos da central"></nav></section>
     <nav class="cj-tour-tools" aria-label="Guia do primeiro turno"><button id="cj-guide-show">Localizar etapa</button><button id="cj-guide-toggle">Pular guia</button></nav>

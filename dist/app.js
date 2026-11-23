@@ -1,4 +1,4 @@
-const pages = {roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], comunidades:['Comunidades','network'], conquistas:['Conquistas','trophy'],ranking:['Ranking','scale']};
+const pages = {central:['Central de missões','layers'],roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], comunidades:['Comunidades','network'], conquistas:['Conquistas','trophy'],ranking:['Ranking','scale']};
 const course=[...coreModules,distributedModule,...aiModules];
 const lessons = course.flatMap((module, m) => module.lessons.map((lesson, l) =>
   ({...lesson, module, m, l, id:(m+1)+'-'+(l+1)})));
@@ -187,7 +187,11 @@ function render() {
   if(typeof disposePlantao==='function'){disposePlantao();disposePlantao=null;}
   if(typeof disposeCorreio==='function'){disposeCorreio();disposeCorreio=null;}
   if(typeof disposeWarroom==='function'){disposeWarroom();disposeWarroom=null;}
-  const route=location.hash.slice(1)||'roadmap';
+  const route=location.hash.slice(1)||'central';
+  if(['central','briefing','diagnostico'].includes(route)){
+    missionHub(route);
+    return;
+  }
   if(route==='comunidades'||route.startsWith('comunidades/')){
     if(!account.name){location.replace('#conta');return;}
     chrome('comunidades','Comunidades');communityPage(route);return;

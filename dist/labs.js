@@ -1,5 +1,4 @@
 const labSymbols={vps:'terminal',deploy:'layers',cloud:'network',k8s:'blocks'};
-const labColors={vps:'blue',deploy:'amber',cloud:'teal',k8s:'violet'};
 const labTags={vps:'Linux · Firewall',deploy:'JavaScript · Testes',cloud:'Rede · Balanceador',k8s:'Cluster · Manifests'};
 const labStore=new Map(), busyLabs=new Set();
 function labState(id) {
@@ -16,12 +15,33 @@ function persistLab(id){
 }
 function labXP(){return labGuides.filter(g=>labState(g.id).earned).length*200+dbDone()*50;}
 function labsHome(){
-  main.innerHTML=header('Prática de System Design','Laboratórios','Teste decisões de armazenamento, edite a aplicação e opere a infraestrutura pelo terminal.')+
-    '<a class="lab-banner arch-launch" href="#lab/arquitetura"><div class="lab-prompt">'+icon('network',32)+'</div><div><h2>Simulador de arquitetura</h2><p>Desenhe a stack para um problema e acompanhe as recomendações em cada componente.</p></div><span>Abrir quadro →</span></a>'+
-    '<a class="plantao-entry wr-entry" href="#jogo/war-room"><span class="plantao-entry-art">'+plantaoSprite('api')+'</span><div><small>RPG de engenharia</small><h2>War Room · Plantão em órbita</h2><p>Resolva seis incidentes com Lia, do apagão na estação à última transmissão para a Terra. Opere o cache, as réplicas e o enlace sob cargas diferentes.</p></div><strong>Jogar →</strong></a>'+
-    '<a class="plantao-entry cj-entry" href="#jogo/correio"><span class="plantao-entry-art">'+icon('layers',32)+'</span><div><small>Minigame de mensageria</small><h2>Correio de Jobs</h2><p>Opere a fila de encomendas e descubra por que um pedido ganhou duas etiquetas.</p></div><strong>Jogar</strong></a>'+
-    '<a class="plantao-entry" href="#jogo/plantao"><span class="plantao-entry-art">'+plantaoSprite('api')+'</span><div><small>Minigame de construção</small><h2>Plantão no Datacenter</h2><p>Monte os servidores da loja e descubra quem consegue comprar a última unidade.</p></div><strong>Jogar →</strong></a>'+
-    '<div class="lab-grid"><a class="labtile" href="#lab/bancos"><div class="tiletop"><span class="square teal">'+icon('database',24)+'</span><span class="counter">'+dbDone()+'/6 decisões</span></div><div class="eyebrow">Arquitetura de dados</div><h2>Escolha de banco de dados</h2><p>Compare planos de acesso e consistência para estoque, sessões, catálogo, relações, telemetria e análise de eventos.</p><div class="meta">50 XP por decisão</div></a>'+labGuides.map((g,i)=>'<a class="labtile" href="#lab/'+g.id+'"><div class="tiletop"><span class="square '+labColors[g.id]+'">'+icon(labSymbols[g.id],24)+'</span><span class="counter">'+(labState(g.id).earned?'Concluído':'200 XP')+'</span></div><div class="eyebrow">Laboratório '+String(i+1).padStart(2,'0')+'</div><h2>'+g.title+'</h2><p>'+g.intro+'</p><div class="meta">'+labTags[g.id]+'</div></a>').join('')+
-    '<a class="labtile" href="#missao/9-2"><div class="tiletop"><span class="square teal">'+icon('network',24)+'</span></div><div class="eyebrow">Laboratório de IA</div><h2>Recuperação para RAG</h2><p>Compare busca lexical, vetorial e híbrida. Meça quantas evidências úteis entram no contexto da resposta.</p></a>'+
-    '<a class="labtile" href="#missao/10-3"><div class="tiletop"><span class="square violet">'+icon('layers',24)+'</span></div><div class="eyebrow">Laboratório de IA</div><h2>Fine-tuning com adaptadores</h2><p>Treine um adaptador de baixo posto e investigue como a qualidade dos rótulos afeta as previsões do classificador.</p></a></div>';
+  const groups=[
+    ['Infraestrutura',labGuides.map(g=>['#lab/'+g.id,g.title,labTags[g.id],labState(g.id).earned?'Concluído':'200 XP'])],
+    ['Arquitetura',[
+      ['#lab/arquitetura','Simulador de arquitetura','Modele a stack e estime o custo na nuvem.','Quadro'],
+      ['#lab/bancos','Escolha de banco de dados','Compare acesso, consistência e volume em seis cenários.',dbDone()+'/6 decisões']
+    ]],
+    ['IA',[
+      ['#missao/9-2','Recuperação para RAG','Meça a cobertura das buscas lexical, vetorial e híbrida.','Experimento'],
+      ['#missao/10-3','Fine-tuning com adaptadores','Avalie o efeito dos rótulos no classificador.','Experimento']
+    ]],
+    ['Jogos',[
+      ['#jogo/war-room','Plantão em órbita','Restaure os serviços da estação com Lia.','RPG'],
+      ['#jogo/correio','Correio de Jobs','Opere filas e workers sem duplicar pedidos.','Simulação'],
+      ['#jogo/plantao','Plantão no Datacenter','Monte servidores para atender à carga da loja.','Construção']
+    ]]
+  ];
+  main.innerHTML=header('Prática de System Design','Laboratórios','')+
+    '<div class="catalog-filters" role="group" aria-label="Filtrar por área">'+['Todos',...groups.map(([group])=>group)].map((name,i)=>
+      '<button type="button" aria-pressed="'+(i===0)+'">'+name+'</button>').join('')+'</div>'+
+    groups.map(([group,items])=>'<section class="catalog-group" data-area="'+group+'"><h2>'+group+'</h2><ul>'+
+      items.map(([url,title,description,status])=>'<li><a href="'+url+'"><span><strong>'+title+'</strong><small>'+description+'</small></span><span class="catalog-status">'+status+'</span>'+icon('forward',16)+'</a></li>').join('')+
+      '</ul></section>').join('');
+  const filters=main.querySelector('.catalog-filters');
+  filters.onclick=e=>{
+    const selected=e.target.closest('button');
+    if(!selected)return;
+    for(const button of filters.children)button.setAttribute('aria-pressed',String(button===selected));
+    for(const section of main.querySelectorAll('.catalog-group'))section.hidden=selected!==filters.firstElementChild&&section.dataset.area!==selected.textContent;
+  };
 }

@@ -1,3 +1,4 @@
+const warDeliveryLesson='5-1';
 const warReadyUrl='http://web-01:8080/ready';
 const warSmoke='curl -fsS '+warReadyUrl;
 const warDeliveryFile=starterApp.replace('  if (request.path', '  // Acrescente aqui a rota de prontidão da doca.\n  if (request.path');

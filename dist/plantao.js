@@ -45,7 +45,7 @@ function plantaoPage(){
   const persist=()=>save(plantaoLesson,{plantao:state});
   const stop=()=>{clearInterval(timer);timer=0;};
   disposePlantao=stop;
-  main.innerHTML=`<div class="pg-game"><header class="pg-bar"><a href="#laboratorios"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
+  main.innerHTML=`<div class="pg-game"><header class="pg-bar"><a href="#central"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
     <div class="pg-content"><header class="pg-heading"><div><small>MINIGAME · CONSTRUÇÃO DE SERVIDORES</small><h1>Plantão no Datacenter</h1></div><div class="pg-wallet"><span>Créditos disponíveis</span><strong id="pg-budget"></strong></div></header>
     <section class="pg-brief"><div><small>MISSÃO</small><h2>A última unidade</h2><p>Abra a loja, absorva o pico e resolva a disputa pela última unidade de estoque.</p></div><nav id="pg-waves" aria-label="Ondas da missão"></nav></section>
     <section class="pg-coach"><div id="pg-guidance"><small id="pg-guide-step"></small><h2 id="pg-guide-title" aria-live="polite"></h2><p id="pg-guide-copy"></p><div id="pg-guide-banks" hidden><span>Banco para a montagem</span><button data-bank="sql">SQL</button><button data-bank="kv">Chave-valor</button></div></div><div class="pg-guide-tools"><button id="pg-show-action">Mostrar ação</button><button id="pg-toggle-guide">Pular guia</button></div></section>

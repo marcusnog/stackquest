@@ -31,7 +31,7 @@ function architectureBoard(caseId){
   let selected=board.nodes[0]?.id, mode='', balloon=null, result, zoom=1, gesture=null;
   const button=(name,action,symbol)=>'<button type="button" data-action="'+action+'">'+(symbol?icon(symbol,15):'')+name+'</button>';
   main.innerHTML=`<div class="arch">
-    <header class="arch-bar"><a href="#laboratorios"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><span>/</span><b>Arquitetura</b><a href="#aparencia" class="arch-user">Aparência</a><a href="#conta">${account.name?'Minha conta':'Entrar'}</a></header>
+    <header class="arch-bar"><a href="#central"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><span>/</span><b>Arquitetura</b><a href="#aparencia" class="arch-user">Aparência</a><a href="#conta">${account.name?'Minha conta':'Entrar'}</a></header>
     <div class="arch-body"><header class="arch-title"><div><span class="arch-kicker">Laboratório de system design</span><h1>Simulador de arquitetura</h1></div><label>Problema de arquitetura<select id="ar-case">${archCases.map(v=>'<option value="'+v.id+'">'+esc(v.title)+'</option>').join('')}</select></label></header>
     <section class="arch-brief"><span class="arch-brief-icon">${icon('flag',22)}</span><div><h2>${esc(c.title)}</h2><p>${esc(c.brief)}</p><p class="arch-load">${esc(c.load)}</p></div><details class="arch-goal"><summary>Critério de sucesso</summary><p>${esc(c.goal)}</p></details></section>
     <div class="arch-bench"><aside class="arch-library"><h2>Componentes</h2><p>Clique ou arraste para o quadro.</p><div id="ar-palette"></div></aside>

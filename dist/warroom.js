@@ -22,11 +22,11 @@ const warDrillNames=['Malha interrompida','Ecos fora de ordem','Antena na tempes
 const warDrillLinks=Object.keys(warDrills).map((key,i)=>'<a href="#jogo/war-room/treino/'+key+'">'+warDrillNames[i]+'</a>').join(' · ');
 function warroomPage(drill,startDelivery=false){
   const practice=Object.hasOwn(warDrills,drill);
-  const lesson='5-1',record=records.get(lesson)||{};
+  const lesson=warDeliveryLesson,record=records.get(lesson)||{};
   const state=warState(practice?{stage:warDrills[drill],wave:1,collected:true,hull:'sealed',x:4,y:4}:record.warroom);
   const sound=warSoundtrack(record.warroomAudio);
   let tutorial=practice?(warHazard(state)?'active':'skipped'):record.warroomTutorial;
-  main.innerHTML=`<div class="pg-game wr-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
+  main.innerHTML=`<div class="pg-game wr-game"><header class="pg-bar"><a href="#central"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
   <div class="pg-content"><header class="pg-heading"><div><small>${practice?'TREINO DE CAMPO':'WAR ROOM · RPG DE ENGENHARIA'}</small><h1>${practice?warDrillNames[state.stage-3]:'Plantão em órbita'}</h1></div><div class="pg-wallet" ${practice?'hidden':''}><span>Incidentes resolvidos</span><strong id="wr-count"></strong><span id="wr-progress" aria-hidden="true">${'<i></i>'.repeat(warChapters.length)}<b id="wr-ship">➤</b></span></div></header>
   <details class="wr-drills" ${practice?'open':''}><summary>Treinos de campo</summary><nav aria-label="Treinos de campo">${warDrillLinks} · <a href="#jogo/war-room">Voltar à campanha</a></nav></details>
   <div class="wr-drills"><a id="wr-delivery-link" href="#jogo/war-room/entrega">Missão de engenharia · O sinal de prontidão</a> · Código, deploy e CI/CD no notebook</div>

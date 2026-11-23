@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#102439">
   <meta name="description" content="Aprenda System Design com uma trilha de missões, decisões de arquitetura e projetos práticos.">
-  <title>Roadmap · StackQuest</title>
+  <title>Central de missões · StackQuest</title>
   <link rel="icon" href="mark.svg">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="studio.css">
@@ -21,14 +21,14 @@
   <script src="lab-guides.js" defer></script>
   <script src="lab-runner.js" defer></script>
   <script src="lab-engine.js?v=diagnostico1" defer></script>
-  <script src="labs.js?v=janelas1" defer></script>
+  <script src="labs.js?v=catalogo1" defer></script>
   <script src="practice-guides.js" defer></script>
-  <script src="studio.js?v=20261122-arch1" defer></script>
+  <script src="studio.js?v=central1" defer></script>
   <script src="db-cases.js" defer></script>
   <script src="db-lab.js" defer></script>
   <script src="architecture-model.js?v=20261122-arch1" defer></script>
   <script src="architecture-cost.js?v=20261122-arch1" defer></script>
-  <script src="architecture.js?v=20261122-arch1" defer></script>
+  <script src="architecture.js?v=central1" defer></script>
   <link rel="stylesheet" href="ranking.css">
   <script src="ranking.js?v=2" defer></script>
   <link rel="stylesheet" href="plantao.css?v=hardware1">
@@ -36,13 +36,13 @@
   <script src="plantao-map.js?v=hardware1" defer></script>
   <script src="plantao-workshop.js" defer></script>
   <script src="plantao-guide.js" defer></script>
-  <script src="plantao.js?v=hardware1" defer></script>
+  <script src="plantao.js?v=central1" defer></script>
   <link rel="stylesheet" href="correio.css?v=turnos2">
   <script src="correio-engine.js?v=turnos2" defer></script>
   <script src="correio-station.js?v=turnos2" defer></script>
   <script src="correio-workshop.js" defer></script>
   <script src="correio-guide.js?v=turnos2" defer></script>
-  <script src="correio.js?v=turnos2" defer></script>
+  <script src="correio.js?v=central1" defer></script>
   <link rel="stylesheet" href="communities.css?v=1">
   <script src="communities.js?v=1" defer></script>
   <link rel="stylesheet" href="warroom.css?v=diagnostico1">
@@ -51,32 +51,57 @@
   <script src="warroom-scenes.js?v=janelas1" defer></script>
   <script src="warroom-map.js?v=ide-protecao1" defer></script>
   <script src="warroom-audio.js?v=pulsos1" defer></script>
-  <script src="warroom.js?v=diagnostico1" defer></script>
-  <script src="warroom-delivery.js?v=diagnostico1" defer></script>
-  <script src="app.js?v=study-menu1" defer></script>
+  <script src="warroom.js?v=central1" defer></script>
+  <script src="warroom-delivery.js?v=central1" defer></script>
+  <link rel="stylesheet" href="central.css">
+  <script src="central.js" defer></script>
+  <script src="app.js?v=central1" defer></script>
   <script src="blueprint.js" defer></script>
-  <script>
-    if(new URLSearchParams(location.search).get('previa')==='1'){
-      document.documentElement.classList.add('study-preview');
-      const sheet=document.createElement('link');sheet.rel='stylesheet';sheet.href='previa.css';document.head.append(sheet);
-      document.addEventListener('DOMContentLoaded',()=>{document.getElementById('preview-return').hidden=false;});
-    }
-  </script>
 </head>
 <body>
   <a class="skip" href="#main">Pular para o conteúdo</a>
-  <aside id="sidebar">
-    <a class="brand" href="#roadmap"><img width="36" height="36" src="mark.svg" alt="">Stack<span>Quest</span></a>
-    <button type="button" id="study-menu" aria-controls="study-links" aria-expanded="false">Menu de estudo</button>
-    <div class="sidegroup" id="study-links"><nav aria-label="Navegação principal" id="nav"></nav></div>
-    <div class="profile" id="profile" hidden></div>
-  </aside>
+  <header id="sidebar">
+    <div class="mast">
+      <a class="brand" href="#central"><img width="34" height="34" src="mark.svg" alt="">Stack<span>Quest</span></a>
+      <div class="top-tools"><div id="streak"></div><a href="#aparencia" class="look-link">Aparência</a><a href="#conta" id="account-link">Entrar</a></div>
+    </div>
+    <button type="button" id="study-menu" aria-label="Menu de estudo" aria-controls="study-links" aria-expanded="false"><span>Menu<span class="menu-detail"> de estudo</span></span></button>
+    <div class="sidegroup" id="study-links"><nav aria-label="Navegação principal" id="nav"></nav><div class="profile" id="profile" hidden></div></div>
+  </header>
   <div class="shell">
-    <div id="preview-return" class="preview-return" hidden><a href="previa.html#central">Protótipo · Voltar à central de missões</a></div>
-    <header class="top"><div class="crumb"><span data-icon="panel"></span><span class="crumb-home">Workspace</span><span class="slash">/</span><b id="crumb"></b></div><div class="top-tools"><div id="streak"></div><a href="#aparencia" class="look-link">Aparência</a><a href="#conta" id="account-link">Entrar</a></div></header>
+    <div class="top"><div class="crumb"><span data-icon="panel"></span><span class="crumb-home">Área de estudo</span><span class="slash">/</span><b id="crumb"></b></div></div>
     <main id="main" tabindex="-1"></main>
   </div>
   <div id="storage-alert" role="status"></div>
+    <template id="screen-central">
+      <div class="desk-title"><h1>Central de missões</h1><div class="course-meter"><span></span><progress aria-label="Missões concluídas"></progress></div></div>
+      <div class="study-desk">
+        <section class="next-study"><p class="study-context"></p><h2></h2><p class="study-task"></p><a class="act" href="#roadmap"></a></section>
+        <section class="feature"><div><h2>O sinal de prontidão</h2><p>Investigue a rota <code>/ready</code> antes de publicar a API na doca.</p><a href="#briefing">Ver briefing da missão</a></div><figure><canvas id="blueprint" aria-hidden="true"></canvas><figcaption><code>web-01:8080</code></figcaption></figure></section>
+      </div>
+      <h2 class="section-heading">Explorar a plataforma</h2>
+      <div class="directory">
+        <section><h3>Estudar</h3><a href="#roadmap">Roadmap de System Design</a><a href="#avancado">IA e sistemas distribuídos</a><a href="#biblioteca">Biblioteca de missões</a></section>
+        <section><h3>Praticar</h3><a href="#laboratorios">Laboratórios e jogos</a><a href="#lab/arquitetura">Simulador de arquitetura e custos</a><a href="#lab/bancos">Escolha de banco de dados</a></section>
+        <section><h3>Acompanhar</h3><a href="#conquistas">Conquistas</a><a href="#ranking">Ranking global</a><a data-members href="#comunidades">Comunidades</a></section>
+        <section><h3>Personalizar</h3><a href="#conta">Minha conta</a><a data-guest href="#cadastro">Criar conta</a><a href="#aparencia">Aparência</a></section>
+      </div>
+    </template>
+    <template id="screen-briefing">
+      <h1>O sinal de prontidão</h1>
+      <p class="intro">Lia precisa liberar a doca. Os clientes ainda conseguem acessar a API, mas o verificador de deploy recebe uma resposta inesperada.</p>
+      <div class="split"><section><h2>Contrato da API</h2>
+        <table><thead><tr><th>Requisição</th><th>Status</th><th>Corpo esperado</th></tr></thead><tbody>
+          <tr><td>GET /health</td><td>200</td><td>ok</td></tr><tr><td>GET /ready</td><td>200</td><td>pronto</td></tr><tr><td>GET /readyz</td><td>404</td><td>livre</td></tr>
+        </tbody></table><p>A sonda consulta o caminho exato. Uma rota desconhecida deve continuar devolvendo 404.</p></section>
+        <aside class="procedure"><h2>Ordem de trabalho</h2><ol><li>Rode os testes e localize a falha.</li><li>Corrija o handler de <code>app.js</code>.</li><li>Valide a resposta antes de publicar.</li></ol><a class="action" href="#diagnostico">Abrir bancada</a></aside></div>
+    </template>
+    <template id="screen-diagnostico">
+      <h1>Bancada de diagnóstico</h1><p class="intro">Rode a suíte da doca, abra a falha no código e teste sua correção. A bancada e o notebook de Lia compartilham o mesmo app.js.</p>
+      <div class="bench"><section class="sample-editor"><h2><code>app.js</code></h2><label class="sr" for="sample-code">Código da API da doca</label><textarea id="sample-code" rows="14" spellcheck="false" autocapitalize="off"></textarea><p id="sample-hint" role="status"></p></section>
+        <section class="sample-terminal"><h2>Terminal da doca</h2><button class="action" id="sample-run" type="button">Executar npm test</button><div id="sample-output" role="log" aria-label="Resultados dos testes">Aguardando execução.</div></section></div>
+      <a class="mission-link" href="#jogo/war-room/entrega">Continuar no notebook de Lia para fazer o deploy</a>
+    </template>
   <noscript>Ative o JavaScript para abrir as missões e acompanhar seu progresso.</noscript>
 </body>
 </html>
