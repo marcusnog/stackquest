@@ -72,6 +72,22 @@ function warNear(state,pos){return Math.abs(state.x-pos[0])+Math.abs(state.y-pos
 function warReach(state,target){
   return !!target&&warNear(state,target.pos)&&(target.kind!=='tag'||warTagLit(state));
 }
+// Guide the first incident from any saved position, including detours around the table.
+function warTutorialStep(state){
+  if(state.stage!==0)return null;
+  const target=warTarget(state),routing=state.collected?3:1;
+  if(warReach(state,target))return {step:state.collected?3:2,key:'use'};
+  const queue=[[state.x,state.y,null]],seen=new Set([state.x+','+state.y]);
+  for(const [x,y,first] of queue){
+    for(const [key,[dx,dy]] of Object.entries(warDirections)){
+      const nx=x+dx,ny=y+dy,id=nx+','+ny;
+      if(seen.has(id)||!warWalkable(nx,ny))continue;
+      if(warNear({x:nx,y:ny},target.pos))return {step:routing,key:first||key};
+      seen.add(id);queue.push([nx,ny,first||key]);
+    }
+  }
+  return null;
+}
 function warInteract(state){
   const target=warTarget(state);
   if(!warReach(state,target))return 'far';
