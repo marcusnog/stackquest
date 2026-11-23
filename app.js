@@ -1,4 +1,5 @@
 const pages = {roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], conquistas:['Conquistas','trophy']};
+const course=[...coreModules,distributedModule,...aiModules];
 const lessons = course.flatMap((module, m) => module.lessons.map((lesson, l) =>
   ({...lesson, module, m, l, id:(m+1)+'-'+(l+1)})));
 const main = document.querySelector('main');
@@ -42,14 +43,14 @@ const careerTitles = [
   'Distinguished Engineer'
 ];
 function rank() {
-  const level = 1+course.filter((_,i)=>lessons.filter(l=>l.m===i).every(complete)).length;
+  const level = Math.min(careerTitles.length,1+course.filter((_,i)=>lessons.filter(l=>l.m===i).every(complete)).length);
   return {level, title:careerTitles[level-1]};
 }
 const badges = [
   {title:'Primeiro deploy',detail:'Conclua sua primeira missão.',goal:1,progress:()=>countDone(),icon:'flag'},
-  ...course.map((m,i)=>({title:['Base sólida','Redes conectadas','Dados em ordem','Pronto para escalar','Sistema resiliente','Arquiteto em ação'][i],
+  ...course.map((m,i)=>({title:['Base sólida','Redes conectadas','Dados em ordem','Pronto para escalar','Sistema resiliente','Arquiteto em ação','Consenso e recuperação','Inferência em escala','Busca fundamentada','Especialista em adaptação','IA em produção'][i],
     detail:'Conclua o módulo '+m.title+'.',goal:m.lessons.length,progress:()=>countDone(lessons.filter(l=>l.m===i)),icon:m.icon})),
-  {title:'Stack completa',detail:'Conclua as 18 missões do roadmap.',goal:lessons.length,progress:()=>countDone(),icon:'trophy'}
+  {title:'Stack completa',detail:'Conclua as 18 missões da trilha inicial.',goal:18,progress:()=>countDone(lessons.filter(l=>l.m<coreModules.length)),icon:'trophy'}
 ];
 function header(section, title, summary) {
   return '<div class="pagehead"><div class="eyebrow">'+section+'</div><h1>'+title+'</h1><p>'+summary+'</p></div>';
@@ -99,8 +100,16 @@ function awardCard() {
 }
 function roadmap() {
   main.innerHTML=header('Trilha de aprendizagem','Roadmap de System Design','Aprenda a projetar sistemas distribuídos, uma missão por vez.')+hero()+
-    '<div class="dashboard"><section><div class="section-title"><h2>Módulos da trilha</h2><span class="counter">'+course.length+' módulos</span></div>'+
+    '<div class="dashboard"><section><div class="section-title"><h2>Módulos da trilha</h2><a class="textlink" href="#avancado">Trilha avançada de IA e sistemas</a></div>'+
     course.map((m,i)=>moduleCard(m,i,nextLesson())).join('')+'</section><aside class="asidecards" aria-label="Progresso e prática">'+progressCard()+'<section class="card lab-shortcut"><div class="card-head">'+icon('terminal')+'Laboratórios</div><p>Provisione uma VPS, publique sua API e escale um cluster.</p><a class="textlink" href="#laboratorios">Abrir ambiente prático</a></section>'+awardCard()+'</aside></div>';
+}
+function advancedRoadmap(){
+  const items=lessons.filter(l=>l.m>=coreModules.length);
+  const next=items.find(l=>!complete(l));
+  main.innerHTML='<a class="back" href="#roadmap">Voltar ao roadmap</a>'+
+    header('Trilha avançada','IA e sistemas distribuídos','Projete um serviço com LLM, investigue a recuperação de evidências e avalie um ajuste de modelo antes de colocá-lo em produção.')+
+    '<div class="dashboard"><section><div class="section-title"><h2>Missões avançadas</h2><span class="counter">'+countDone(items)+' / '+items.length+'</span></div>'+
+    course.slice(coreModules.length).map((m,i)=>moduleCard(m,i+coreModules.length,next)).join('')+'</section><aside class="asidecards"><section class="card"><div class="card-head">'+icon('terminal')+'Experimentos no navegador</div><p class="footnote">Compare evidências recuperadas e observe o efeito de treinar um adaptador com exemplos rotulados.</p><p><a class="textlink" href="#missao/9-2">Comparar a recuperação no RAG</a></p><p><a class="textlink" href="#missao/10-3">Treinar um adaptador pequeno</a></p></section></aside></div>';
 }
 function referenceLink(lesson) {
   return '<a class="textlink" target="_blank" rel="noopener noreferrer" href="'+lesson.reference.url+'">'+lesson.reference.title+' '+icon('external',14)+'</a>';
@@ -119,15 +128,17 @@ function library() {
 }
 function awards() {
   const earned=badges.filter(b=>b.progress()>=b.goal).length;
-  main.innerHTML=header('Seu progresso','Conquistas',earned+' de '+badges.length+' conquistas desbloqueadas. Cada módulo completo aumenta seu nível.')+
+  main.innerHTML=header('Seu progresso','Conquistas',earned+' de '+badges.length+' conquistas desbloqueadas. Cada módulo completo conta para a carreira, até o nível 7.')+
     '<div class="awards">'+badges.map(b=>'<article class="achievement '+(b.progress()<b.goal?'unearned':'')+'"><div class="badge-art">'+icon(b.icon,26)+'</div><h2>'+b.title+'</h2><p>'+b.detail+'</p>'+awardProgress(b)+'</article>').join('')+'</div>';
 }
 function showLesson(l) {
   const record=records.get(l.id),done=complete(l);
   if (!record.started) save(l.id,{started:true});
-  main.innerHTML='<div class="lesson-wrap"><a class="back" href="#roadmap">Voltar ao roadmap</a>'+
+  const advanced=l.m>=coreModules.length;
+  main.innerHTML='<div class="lesson-wrap">'+(advanced?'<a class="back" href="#avancado">Voltar à trilha avançada</a>':'<a class="back" href="#roadmap">Voltar ao roadmap</a>')+
     header('Módulo '+(l.m+1)+' / '+l.module.title,l.title,'Missão '+(l.l+1)+' de '+l.module.lessons.length+' · '+l.minutes+' min · '+xp+' XP')+
     '<article class="lessoncard"><h2>Aula</h2>'+l.paragraphs.map(p=>'<p>'+p+'</p>').join('')+'<div class="case"><b>Cenário</b>'+l.scenario+'</div></article>'+
+    (['9-2','10-3'].includes(l.id)?'<section class="lessoncard" id="ai-experiment"></section>':'')+
     '<form class="lessoncard" id="test"><h2>Teste sua decisão</h2><fieldset><legend>'+l.question+'</legend>'+
     l.options.map((option,i)=>'<label class="answer"><input type="radio" required name="option" value="'+i+'" '+(record.answer===i?'checked':'')+' '+(done?'disabled':'')+'>'+option+'</label>').join('')+
     '</fieldset>'+(!done?'<button class="act" type="submit">Verificar resposta</button>':'')+'<div id="quiz-result" role="status"></div></form>'+
@@ -137,6 +148,8 @@ function showLesson(l) {
     (l.m===2?'<section class="lessoncard"><h2>Pratique a escolha de banco</h2><a class="textlink" href="#lab/bancos">Testar modelos de dados no laboratório</a></section>':'')+
     '<section class="lessoncard"><h2>Leitura de apoio</h2>'+referenceLink(l)+'</section></div>';
   const note=document.getElementById('note'),quiz=document.getElementById('test'),button=document.getElementById('finish'),status=document.getElementById('finish-status');
+  const experiment=document.getElementById('ai-experiment');
+  if(experiment)mountAiPractice(experiment,l.id,record.practice,practice=>save(l.id,{practice}));
   note.value=typeof record.note==='string'?record.note:'';
   const feedback=()=>{
     const {answer}=records.get(l.id);
@@ -146,7 +159,8 @@ function showLesson(l) {
   };
   function showComplete() {
     button.disabled=true;button.innerHTML=icon('check',16)+'Missão concluída';
-    const next=nextLesson();
+    const pending=lessons.filter(item=>!complete(item)&&(!advanced||item.m>=coreModules.length));
+    const next=pending.find(item=>item.m>l.m||(item.m===l.m&&item.l>l.l))||pending[0];
     status.innerHTML='<div class="feedback good">Você conquistou '+xp+' XP. <a class="textlink" href="'+(next?lessonLink(next):'#conquistas')+'">'+(next?'Ir para a próxima missão':'Ver suas conquistas')+'</a></div>';
   }
   feedback();if(done) showComplete();
@@ -162,6 +176,7 @@ function showLesson(l) {
 }
 function render() {
   const route=location.hash.slice(1)||'roadmap';
+  if(route==='avancado'){chrome('roadmap','Trilha avançada');advancedRoadmap();document.dispatchEvent(new Event('stackquest:render'));return;}
   if(route==='conta'||route==='cadastro'){chrome('conta',account.name?'Minha conta':'Conta');accountPage();return;}
   if(route==='lab/bancos'||route.startsWith('lab/bancos/')){
     chrome('laboratorios','Escolha de banco de dados');dbLab(route.split('/')[2]);document.dispatchEvent(new Event('stackquest:render'));return;

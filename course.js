@@ -1,4 +1,4 @@
-const course = [
+const coreModules = [
   {
     title: "Fundamentos de arquitetura",
     description: "Transforme uma ideia em requisitos, estimativas e um primeiro desenho.",
