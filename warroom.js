@@ -21,10 +21,11 @@ function warroomPage(){
   const lesson='5-1',record=records.get(lesson)||{},state=warState(record.warroom);
   let tutorial=record.warroomTutorial;
   main.innerHTML=`<div class="pg-game wr-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
-  <div class="pg-content"><header class="pg-heading"><div><small>WAR ROOM · RPG DE ENGENHARIA</small><h1>Plantão em órbita</h1></div><div class="pg-wallet"><span>Incidentes resolvidos</span><strong id="wr-count"></strong><span id="wr-progress" aria-hidden="true"><i></i><i></i><i></i><b id="wr-ship">➤</b></span></div></header>
-  <div class="wr-layout"><section class="pg-play"><header class="wr-mapbar"><h2>Convés de operações</h2><span id="wr-position"></span><span id="wr-power"></span></header>
-  <div id="wr-board" tabindex="0" role="group" aria-label="Mapa da war room" aria-describedby="wr-keys wr-guide wr-position"><div class="wr-space" aria-hidden="true"><div class="wr-planet"><i></i><b></b></div><div class="wr-aurora"></div></div>${warMap()}<div class="wr-flyby" aria-hidden="true"><div class="wr-rock"><i></i><i></i><i></i><i></i></div></div></div>
+  <div class="pg-content"><header class="pg-heading"><div><small>WAR ROOM · RPG DE ENGENHARIA</small><h1>Plantão em órbita</h1></div><div class="pg-wallet"><span>Incidentes resolvidos</span><strong id="wr-count"></strong><span id="wr-progress" aria-hidden="true">${'<i></i>'.repeat(warChapters.length)}<b id="wr-ship">➤</b></span></div></header>
+  <div class="wr-layout"><section class="pg-play"><header class="wr-mapbar"><div><h2 id="wr-sector"></h2><small id="wr-inspiration"></small></div><span id="wr-position"></span><span id="wr-power"></span></header>
+  <div id="wr-board" tabindex="0" role="group" aria-label="Mapa da war room" aria-describedby="wr-keys wr-guide wr-position">${warMap()}<div class="wr-flyby" aria-hidden="true"><div class="wr-rock"><i></i><i></i><i></i><i></i></div></div></div>
   <div class="wr-objective"><span class="wr-cross" aria-hidden="true">◎</span><div><small>OBJETIVO ATUAL</small><p id="wr-guide"></p></div><button id="wr-help" type="button">Tutorial</button></div>
+  <section id="wr-link" hidden aria-label="Telemetria da operação"><strong id="wr-link-state"></strong><progress id="wr-waves" max="3" aria-label="Janelas estabilizadas"></progress><span id="wr-signal"></span></section>
   <aside id="wr-coach" hidden aria-label="Orientação do tutorial"><div role="status" aria-atomic="true"><small id="wr-coach-step"></small><p id="wr-coach-tip"></p></div><button id="wr-skip" type="button">Pular tutorial</button></aside>
   <div class="wr-controls"><div class="wr-equip"><span id="wr-equip-art" aria-hidden="true"></span><div><small>EM MÃOS</small><strong id="wr-equipped"></strong></div></div>
   <div class="wr-pad" role="group" aria-label="Movimento"><button data-move="w" aria-label="Andar para cima">↑</button><button data-move="a" aria-label="Andar para a esquerda">←</button><button data-move="s" aria-label="Andar para baixo">↓</button><button data-move="d" aria-label="Andar para a direita">→</button></div><button id="wr-use" class="pg-primary"><kbd>Espaço</kbd><span id="wr-verb"></span></button></div>
@@ -108,24 +109,35 @@ function warroomPage(){
     if(dropKey!==lastDrop){
       lastDrop=dropKey;
       el('drop').innerHTML=target?warAt(target.pos,'<ellipse class="wr-halo" cy="3" rx="19" ry="8" fill="none" stroke="#ffe18b" stroke-width="2" stroke-dasharray="5 3"/>'+
-        (target.kind==='item'?warItemArt(state.stage):'')+'<path d="m-24 1 5-3v6z" fill="#ffe18b" stroke="#594b35"/>'):'';
+        (target.kind==='item'?warItemArt(state.stage):target.kind==='relay'?warItemArt('relay'):'')+'<path d="m-24 1 5-3v6z" fill="#ffe18b" stroke="#594b35"/>'):'';
     }
     el('drop').style.opacity=visible?'1':'0';
     const near=warReach(state,target);
     el('position').textContent='Lia · '+warCoord([state.x,state.y]);
     board.setAttribute('aria-label','Mapa da war room. '+el('position').textContent+(near?'. Ao alcance: '+target.name:'.'));
-    el('verb').textContent=near?({item:'Coletar item',torch:'Pegar lanterna',tag:'Ler etiqueta',breaker:'Examinar quadro',bulkhead:'Selar antepara',puzzle:'Abrir terminal'}[target.kind]):(target?'Fora de alcance':'Turno encerrado');
+    el('verb').textContent=near?({item:'Coletar item',torch:'Pegar lanterna',tag:'Ler etiqueta',breaker:'Examinar quadro',bulkhead:'Selar antepara',puzzle:'Abrir terminal',relay:warChapters[state.stage]?.relayAction}[target.kind]):(target?'Fora de alcance':'Turno encerrado');
     el('use').disabled=!near;
     drawTutorial();
   }
   function draw(){
     const ch=warChapters[state.stage],target=warTarget(state);
-    el('count').textContent=state.stage+' / 3';el('power').textContent=labels[state.power];
+    const sector=Math.min(state.stage,warScenes.length-1);
+    if(root.dataset.sector!==String(sector)){
+      root.dataset.sector=String(sector);
+      const scene=warScenes[sector];
+      el('sector').textContent=scene.name;el('inspiration').textContent='Convés inspirado em '+scene.inspiration;
+      el('panorama').innerHTML=scene.panorama;el('floor-mark').innerHTML=scene.surface;
+      scene.floor.forEach((color,i)=>svg.style.setProperty('--wr-floor-'+i,color));
+      svg.style.setProperty('--wr-zenith',scene.sky[0]);svg.style.setProperty('--wr-horizon',scene.sky[1]);
+      svg.style.setProperty('--wr-wall',scene.wall);svg.style.setProperty('--wr-trim',scene.trim);
+      if(!reduced.matches)el('panorama').animate([{opacity:.4},{opacity:1}],{duration:320});
+    }
+    el('count').textContent=state.stage+' / '+warChapters.length;el('power').textContent=labels[state.power];
     el('progress').querySelectorAll('i').forEach((pip,i)=>pip.classList.toggle('done',i<state.stage));
-    el('ship').style.transform='translateX('+(state.stage*30)+'px)';
+    el('ship').style.transform='translateX('+(90*state.stage/warChapters.length)+'px)';
     const storm=state.power==='torch'||state.power==='dark',breached=state.hull==='breached';
     root.classList.toggle('wr-storm',storm);root.classList.toggle('wr-breached',breached);
-    const card=storm?'Evento solar':breached?'Impacto orbital':state.stage===3?'Fim da travessia':'Incidente '+(state.stage+1)+' de 3';
+    const card=storm?'Evento solar':breached?'Impacto orbital':!ch?'Fim da travessia':'Incidente '+(state.stage+1)+' de '+warChapters.length;
     if(el('card-no').textContent!==card){
       el('card-no').textContent=card;
       if(!reduced.matches)root.querySelector('.wr-card').animate([{transform:'perspective(650px) rotateX(-13deg) translateY(-6px)'},{transform:'none'}],{duration:380,easing:'ease-out'});
@@ -134,27 +146,36 @@ function warroomPage(){
     const equipped=state.power==='torch'?'Lanterna':state.collected?ch.item:'Mãos livres';
     el('equipped').textContent=equipped;
     el('equip-art').innerHTML=equipped==='Mãos livres'?'<span class="wr-portrait"></span>':'<svg viewBox="-17 -16 36 32">'+warItemArt(state.power==='torch'?'torch':state.stage)+'</svg>';
-    el('time').textContent=['02:13','02:17','02:23','02:31'][state.stage]+' · RÁDIO DO PLANTÃO';
-    el('title').textContent=storm?'Tempestade solar':breached?'Micrometeorito a estibordo':ch?.title||'Docagem concluída';
+    el('time').textContent=['02:13','02:17','02:23','02:31','02:39','02:46','02:54'][state.stage]+' · RÁDIO DO PLANTÃO';
+    el('title').textContent=storm?'Tempestade solar':breached?'Micrometeorito a estibordo':ch?.title||'Transmissão concluída';
     el('radio').textContent=state.power==='dark'?'Uma tempestade solar aciona a proteção do convés. Os terminais se apagam. Ravi chama no rádio a bateria: “A lanterna está junto à porta.”':
       state.power==='torch'?'Ravi: “Só a ala leste perdeu telemetria. A etiqueta de manutenção entre os terminais indica o ramal dos monitores.”':
       breached?'Um micrometeorito atingiu o duto de refrigeração. O gelo tomou o corredor G. Ravi sinaliza o comando da antepara na parede do fundo.':
-      ch?.radio||'Às 02:31, a nave de abastecimento atraca. Cada carga tem uma única cobrança. Lia entrega o rádio a Ravi e registra as decisões da travessia.';
+      ch?.radio||'Às 02:54, a Terra confirma o manifesto final. Ravi encerra o canal e Lia entrega o diário dos seis incidentes à próxima tripulação.';
     el('guide').textContent=!target?'Plantão concluído. Confira suas decisões no diário.':target.kind==='bulkhead'?'A fileira 5 está livre. Contorne o gelo e sele a antepara em G1.':target.kind==='tag'?'Ilumine a parede do fundo em D1. Aponte para a etiqueta e leia com Espaço.':
       target.kind==='breaker'?'Siga o conduíte até o quadro em I1. Cruze a etiqueta com o chamado de Ravi.':
-      (target.kind==='puzzle'?'Abra o terminal ': 'Colete ')+target.name+' em '+warCoord(target.pos)+'.';
+      (target.kind==='puzzle'?'Abra o terminal ':target.kind==='relay'?'Ative o equipamento de campo · ': 'Colete ')+target.name+' em '+warCoord(target.pos)+'.';
+    root.dataset.operation=ch?.relay?String(state.stage):'';
+    root.classList.toggle('wr-signal-alert',ch?.relay&&state.setting!==null);
+    el('link').hidden=!ch?.relay;
+    if(ch?.relay){
+      el('waves').value=state.wave;
+      el('link-state').textContent='Janelas estabilizadas · '+state.wave+' / 3';
+      el('signal').textContent=state.setting!==null?warWindow(state).measure(state.setting).text:
+        target.kind==='relay'?ch.relayName+' aguarda intervenção local.':state.relayReady?'Equipamento de campo conectado.':'Aguardando sinal do terminal.';
+    }
     const held=warChapters.filter((_,i)=>i<state.stage||(i===state.stage&&state.collected)).map(c=>c.item);
     if(['torch','restored'].includes(state.power))held.push('Lanterna de emergência');
     if(state.tagRead)held.push('Etiqueta · Monitores no ramal B');
     el('bag').innerHTML=held.length?held.map((s,i)=>'<li><svg viewBox="-17 -16 36 32" aria-hidden="true">'+warItemArt(s==='Lanterna de emergência'?'torch':i)+'</svg>'+s+'</li>').join(''):'<li>Mochila vazia</li>';
     el('log').innerHTML=(state.stage?warChapters.slice(0,state.stage).map(c=>'<li>'+c.result+'</li>').join(''):'<li>02:13 · Lia assumiu a investigação.</li>')+
       (state.power==='restored'?'<li>Circuito dos terminais rearmado.</li>':'')+(state.hull==='sealed'?'<li>Vazamento isolado. Passagem de estibordo liberada.</li>':'');
-    el('replay').hidden=state.stage!==3;
-    el('use').disabled=state.stage===3;for(const b of pad.children)b.disabled=state.stage===3;
+    el('replay').hidden=!!ch;
+    el('use').disabled=!ch;for(const b of pad.children)b.disabled=!ch;
     drawMap();
   }
   function move(key){
-    if(state.stage===3)return;
+    if(state.stage===warChapters.length)return;
     const previousFacing=state.facing;
     if(warMove(state,key)){
       persist();drawMap();el('status').textContent='';
@@ -182,7 +203,15 @@ function warroomPage(){
     if(state.stage===0)el('input').innerHTML=ch.options.map((s,i)=>'<label><input type="radio" required name="revision" value="'+i+'"> '+s+'</label>').join('');
     if(state.stage===1)el('input').innerHTML='<label>Tarefas simultâneas por worker <input type="number" name="workers" min="1" max="40" required></label>';
     if(state.stage===2)sequence();
-    dialog.showModal();
+    if(ch.relay){
+      const window=warWindow(state);
+      el('terminal').textContent=ch.station+' · Janela '+(state.wave+1)+' de 3';
+      el('question').textContent=window.title;el('evidence').textContent=window.evidence;
+      el('input').innerHTML=window.options?window.options.map((option,i)=>'<label><input type="radio" required name="setting" value="'+i+'"> '+option+'</label>').join(''):
+        '<label>Reserva para telemetria (Mbit/s) <input type="number" required name="setting" min="0" max="'+window.max+'"></label>';
+      if(state.setting!==null)el('feedback').textContent=window.measure(state.setting).text;
+    }
+    if(!dialog.open)dialog.showModal();
   }
   function use(){
     controls.stop();
@@ -208,8 +237,8 @@ function warroomPage(){
         pickup.onfinish=()=>object.parentElement?.remove();
       }
     }
-    if(action==='bulkhead')act(4,480);
-    el('status').textContent={item:'Evidência na mochila.',torch:'Lanterna ligada. O facho acompanha seu olhar.',tag:warTagText,bulkhead:'Antepara selada. Aquecimento do piso restabelecido; o caminho está livre.'}[action];
+    if(action==='bulkhead'||action==='relay')act(4,480);
+    el('status').textContent={item:'Evidência na mochila.',torch:'Lanterna ligada. O facho acompanha seu olhar.',tag:warTagText,bulkhead:'Antepara selada. Aquecimento do piso restabelecido; o caminho está livre.',relay:'Sinal de campo confirmado. Retorne ao terminal para a próxima janela.'}[action];
     plantaoAnimate(el('bag'),'collect');
   }
   el('input').onclick=e=>{
@@ -220,6 +249,19 @@ function warroomPage(){
   };
   el('puzzle').onsubmit=e=>{
     e.preventDefault();const stage=state.stage,fields=new FormData(e.target);
+    if(fields.has('setting')){
+      const reading=warTransmit(state,Number(fields.get('setting')));
+      if(!reading)return;
+      persist();draw();
+      if(!reading.ok){el('feedback').textContent=reading.text+' Ajuste a configuração e repita esta janela.';return;}
+      const message='Janela estabilizada. '+reading.text;
+      if(stage===state.stage&&warTarget(state).kind==='puzzle'){
+        openPuzzle();el('feedback').textContent=message;el('input').querySelector('input').focus();
+      }else{
+        dialog.close();el('status').textContent=message+' '+(stage===state.stage?el('guide').textContent:warChapters[stage].result);
+      }
+      return;
+    }
     if(fields.has('circuit')){
       if(!warRestore(state,warCircuits[Number(fields.get('circuit'))])){
         el('feedback').textContent='Esse circuito não corresponde às duas pistas. Confira a ala no rádio e o ramal na etiqueta.';return;
@@ -248,7 +290,7 @@ function warroomPage(){
   el('use').onclick=()=>{board.focus({preventScroll:true});use();};
   el('replay').onclick=()=>{controls.stop();Object.assign(state,warState());svg.classList.remove('wr-boot');root.classList.remove('wr-impacting');stride=0;pose(0);persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
   function keyboard(e){
-    if(intro.open||dialog.open||state.stage===3||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
+    if(intro.open||dialog.open||state.stage===warChapters.length||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
     const key=({ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d'})[e.key]||e.key.toLowerCase();
     if(Object.hasOwn(warDirections,key)){
       e.preventDefault();if(!e.repeat)controls.press(e.code||e.key,key);
