@@ -78,6 +78,20 @@ function warWeatherTurn(state){
 function warWalkable(x,y){
   return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<9&&y>=0&&y<5&&!warFurniture.some(([a,b])=>a===x&&b===y);
 }
+const warRecipes=[
+  {id:'tracker',name:'Rastreador de campo',material:'cobre',layers:2,use:'Mostra a distância em casas até o objetivo atual.'},
+  {id:'quake',name:'Âncora magnética',material:'titanio',layers:4,use:'Permite entrar em uma casa atingida por um tremor. Uso único.'},
+  {id:'storm',name:'Escudo de rajada',material:'ceramica',layers:3,use:'Permite entrar em uma casa atingida pela tempestade. Uso único.'}
+];
+function warPrint(state,code){
+  const args=/^imprimir\s*\(\s*(["'])([a-z]+)\1\s*,\s*([1-9]\d*)\s*\)\s*;?$/.exec(code.trim());
+  if(!args)return {ok:false,text:'Use imprimir("material", camadas). Coloque o material entre aspas e use um número inteiro positivo.'};
+  const item=warRecipes.find(r=>r.material===args[2]&&r.layers===Number(args[3]));
+  if(!item)return {ok:false,text:'Essa combinação não tem molde. Confira o material e o número de camadas no caderno.'};
+  if(state.printed.includes(item.id))return {ok:false,text:item.name+' já está na mochila.'};
+  state.printed.push(item.id);
+  return {ok:true,text:item.name+' na mochila. '+item.use};
+}
 function warState(raw={}){
   const stage=Number.isInteger(raw?.stage)&&raw.stage>=0&&raw.stage<=warChapters.length?raw.stage:0;
   const operational=!!warChapters[stage]?.relay;
@@ -85,6 +99,7 @@ function warState(raw={}){
   const power=stage===0?'on':stage>1?'restored':['dark','torch','restored'].includes(raw.power)?raw.power:'dark';
   const position=warWalkable(raw?.x,raw?.y)?[raw.x,raw.y]:[0,4];
   return {x:position[0],y:position[1],stage,power,facing:Object.hasOwn(warDirections,raw?.facing)?raw.facing:'s',
+    printed:warRecipes.filter(r=>Array.isArray(raw?.printed)&&raw.printed.includes(r.id)).map(r=>r.id),
     hull:stage===2&&raw?.hull==='breached'?'breached':stage>=2&&raw?.hull==='sealed'?'sealed':'intact',
     tagRead:(power==='torch'||power==='restored')&&raw?.tagRead===true,
     wave,field:warFieldState(wave===1?raw.field:undefined),offset:operational&&stage!==4&&[1,2].includes(raw.offset)?raw.offset:0,
@@ -102,7 +117,11 @@ function warMove(state,key){
   const hazard=warHazard(state);
   if(hazard){
     warWeatherTurn(state);
-    if(hazard.remaining===1&&hazard.cells.some(([cx,cy])=>cx===x&&cy===y))return false;
+    if(hazard.remaining===1&&hazard.cells.some(([cx,cy])=>cx===x&&cy===y)){
+      const shield=state.printed.indexOf(hazard.kind);
+      if(shield<0)return false;
+      state.printed.splice(shield,1);
+    }
   }
   state.x=x;state.y=y;return true;
 }
