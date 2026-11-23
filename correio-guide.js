@@ -35,5 +35,5 @@ function correioGuide(state,view,recipeId,run) {
       return action(4,busy===1?'Ocupe a outra bancada':'Ocupe a bancada livre','Avance um evento e observe mais um worker receber um pedido enquanto os demais trabalham.','#cj-step');
     return action(4,'Acompanhe a primeira etiqueta','Os workers estão atendendo em paralelo. Avance para ver a primeira etiqueta na conferência de expedição.','#cj-step');
   }
-  return action(4,'Conclua o malote','Já há '+frame.sent+(frame.sent===1?' etiqueta emitida.':' etiquetas emitidas.')+' Rode até o fim para conferir o prazo e a etiqueta de cada pedido.','#cj-finish');
+  return action(4,'Conclua o malote','Já há '+frame.sent+(frame.sent===1?' etiqueta emitida.':' etiquetas emitidas.')+' Clique em Reproduzir turno para acompanhar o restante da fila até a expedição.','#cj-play');
 }

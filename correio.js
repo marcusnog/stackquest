@@ -18,11 +18,13 @@ function correioPage() {
     <section class="pg-brief"><div><small id="cj-number"></small><h2 id="cj-name"></h2><p id="cj-goal"></p></div><nav class="cj-shifts" aria-label="Turnos da central"></nav></section>
     <nav class="cj-tour-tools" aria-label="Guia do primeiro turno"><button id="cj-guide-show">Localizar etapa</button><button id="cj-guide-toggle">Pular guia</button></nav>
     <aside id="cj-guidance" hidden aria-labelledby="cj-guide-title"><small id="cj-guide-stage"></small><button id="cj-guide-dismiss" aria-label="Fechar orientação e pausar o guia" title="Pausar guia (Esc)">×</button><h2 id="cj-guide-title" aria-live="polite"></h2><p id="cj-guide-body"></p><button id="cj-guide-replay" hidden>Rever primeiro turno</button></aside>
-    <div class="pg-grid"><section class="pg-play"><header><div class="cj-view" role="group" aria-label="Área da central"><button data-view="operation">Triagem</button><button data-view="depot">Almoxarifado</button></div><span id="cj-clock"></span></header><div class="cj-scene" aria-hidden="true"></div>
+    <dialog id="cj-level" aria-labelledby="cj-level-title"><div class="cj-award"><div class="cj-seal" aria-hidden="true"><span id="cj-level-seal"></span></div><small id="cj-level-caption"></small><h2 id="cj-level-title"></h2><p id="cj-level-detail"></p><button id="cj-level-continue" class="pg-primary" autofocus></button><button id="cj-level-close">Ver resultado</button></div></dialog>
+    <div class="pg-grid"><section class="pg-play"><header><div class="cj-view" role="group" aria-label="Área da central"><button data-view="operation">Triagem</button><button data-view="depot">Almoxarifado</button></div><span id="cj-clock"></span></header>
+    <div id="cj-monitor"><div class="cj-watch"><button id="cj-play">Reproduzir turno</button><progress id="cj-track" aria-label="Progresso da reprodução"></progress><span id="cj-count"></span></div><div class="cj-scene" aria-hidden="true"></div><p id="cj-event" role="status"></p></div>
     <section class="cj-depot" id="cj-depot" aria-label="Pontos de coleta"><header><h2>Almoxarifado</h2><p>Escolha uma pilha para recolher até duas unidades.</p></header><div class="cj-yard">${correioStation({},true)}<div class="cj-sources"></div></div></section>
     <section class="cj-bag" aria-label="Inventário"><h3>Inventário</h3><div id="cj-slots"></div><button id="cj-open-craft">Abrir oficina</button></section>
     <div class="cj-meters"><div><span>Na fila</span><b id="cj-wait"></b></div><div><span>Workers ocupados</span><b id="cj-busy"></b></div><div><span>Etiquetas</span><b id="cj-sent"></b></div><div><span>Reentregas</span><b id="cj-retries"></b></div></div>
-    <div class="cj-timeline"><h3>Rastreamento</h3><p id="cj-event" role="status"></p><div class="cj-controls"><button id="cj-back">Evento anterior</button><button id="cj-step">Próximo evento</button><button id="cj-finish">Rodar até o fim</button></div><p class="cj-manifest" id="cj-manifest"></p><details class="cj-log"><summary>Histórico deste turno</summary><ol id="cj-history"></ol></details></div></section>
+    <div class="cj-timeline"><h3>Rastreamento</h3><div class="cj-controls"><button id="cj-back">Evento anterior</button><button id="cj-step">Próximo evento</button><button id="cj-finish">Pular para o resultado</button></div><p class="cj-manifest" id="cj-manifest"></p><details class="cj-log"><summary>Histórico deste turno</summary><ol id="cj-history"></ol></details></div></section>
     <aside class="pg-side"><section class="pg-round cj-craft"><h2>Oficina de fabricação</h2><div class="cj-recipes" role="group" aria-label="Receitas de fabricação"></div><p id="cj-effect"></p><div id="cj-cost"></div><button id="cj-craft" class="pg-primary"></button><button id="cj-recover">Desmontar e recuperar materiais</button><p id="cj-tip"></p><button id="cj-gather">Ir coletar materiais</button><p id="cj-notice" role="status"></p></section>
     <section class="pg-round cj-config"><h2>Monte o turno</h2><label>Workers ativos<select id="cj-workers"><option value="1">1 bancada</option><option value="2">2 bancadas</option><option value="3">3 bancadas</option></select></label>
     <label>Confirmação à fila (ACK)<select id="cj-ack"><option value="before">Ao receber o envelope</option><option value="after">Após gravar a etiqueta</option></select></label>
@@ -39,6 +41,13 @@ function correioPage() {
     <a href="#lab/arquitetura/tarefas">Desenhar uma arquitetura com fila e workers</a></details></div></div>`;
   const root = main.querySelector('.cj-game');
   const el = name=>root.querySelector('#cj-'+name);
+  let timer=0;
+  function stopPlayback(){
+    clearInterval(timer);timer=0;root.classList.remove('cj-running');
+    el('play').textContent='Reproduzir turno';
+  }
+  const visibility=()=>{if(document.hidden && timer){stopPlayback();drawGuide();}};
+  document.addEventListener('visibilitychange',visibility);
   const materials = Object.entries(correioMaterials);
   root.querySelector('.cj-sources').innerHTML = materials.map(([id,m])=>'<button data-collect="'+id+'" aria-label="Coletar '+m.name+'"><span class="cj-stack">'+correioItemArt(id)+'</span><strong>'+m.source+'</strong><span class="cj-source-qty"></span></button>').join('');
   el('slots').innerHTML = materials.map(([id,m])=>'<div class="cj-slot">'+correioItemArt(id)+'<span>'+m.name+'</span><b id="cj-bag-'+id+'"></b></div>').join('');
@@ -73,6 +82,7 @@ function correioPage() {
   viewport?.addEventListener('resize',schedulePosition);
   viewport?.addEventListener('scroll',schedulePosition);
   disposeCorreio=()=>{
+    stopPlayback();document.removeEventListener('visibilitychange',visibility);
     observer.disconnect();cancelAnimationFrame(layoutFrame);
     window.removeEventListener('scroll',schedulePosition,true);
     window.removeEventListener('resize',schedulePosition);
@@ -84,11 +94,12 @@ function correioPage() {
     if(target){target.classList.remove('pg-guided');target.removeAttribute('aria-describedby');}
     target=null;anchor=null;
     const guide=correioGuide(state,view,recipeId,run);
-    el('guidance').hidden=!state.guideOn;
-    el('guide-show').hidden=!state.guideOn;
+    const guideVisible=state.guideOn && !timer && !el('level').open;
+    el('guidance').hidden=!guideVisible;
+    el('guide-show').hidden=!guideVisible;
     el('guide-replay').hidden=!state.guideOn||!!guide.target;
     el('guide-toggle').textContent=state.guideOn?(guide.target?'Pular guia':'Fechar guia'):(state.cleared?'Ver guia':'Retomar guia');
-    if(!state.guideOn){reveal=false;return;}
+    if(!guideVisible){reveal=false;return;}
     el('guide-stage').textContent='PRIMEIRO TURNO · '+guide.stage+' / 4';
     el('guide-body').textContent=guide.body;
     if(el('guide-title').textContent!==guide.title){
@@ -104,7 +115,7 @@ function correioPage() {
     schedulePosition();
   }
   function drawWorkshop() {
-    root.querySelector('.cj-scene').hidden = view!=='operation';
+    el('monitor').hidden = view!=='operation';
     el('depot').hidden = view!=='depot';
     for (const b of root.querySelectorAll('[data-view]')) b.setAttribute('aria-pressed',String(b.dataset.view===view));
     for (const [id,m] of materials) {
@@ -136,6 +147,9 @@ function correioPage() {
     const scenario = correioShifts[state.shift];
     const frame = run.frames[state.cursor];
     const ended = state.cursor === run.frames.length-1;
+    el('play').disabled=ended;
+    el('track').max=run.frames.length-1;el('track').value=state.cursor;
+    el('count').textContent=(state.cursor+1)+' / '+run.frames.length;
     el('progress').textContent = state.cleared+' / 3';
     el('number').textContent = 'TURNO '+(state.shift+1);
     el('name').textContent = scenario.name;
@@ -175,13 +189,27 @@ function correioPage() {
   function seek(index,previousFrame) {
     view = 'operation';
     state.cursor = index;
-    if (index===run.frames.length-1 && run.pass) state.cleared = Math.max(state.cleared,state.shift+1);
+    const ended=index===run.frames.length-1;
+    const unlocked=ended && run.pass && state.cleared===state.shift;
+    if(ended)stopPlayback();
+    if(unlocked)state.cleared=state.shift+1;
     persist();
+    if(unlocked){
+      const next=correioShifts[state.cleared];
+      el('level-seal').textContent=state.cleared+' / '+correioShifts.length;
+      el('level-caption').textContent=correioShifts[state.shift].name+' · concluído';
+      el('level-title').textContent=next?'Turno '+(state.cleared+1)+' desbloqueado':'Central de triagem concluída';
+      el('level-detail').textContent=next?'Próximo desafio: '+next.name+'.':'Você concluiu os três turnos e emitiu uma etiqueta por pedido na última carga.';
+      el('level-continue').textContent=next?'Jogar próximo turno':'Conferir a expedição';
+      el('level-close').hidden=!next;
+      el('level').showModal();
+    }
     draw(previousFrame);
     if(previousFrame && run.frames[index].sent>previousFrame.sent)plantaoAnimate(el('sent'),'collect');
     if(index===run.frames.length-1)plantaoAnimate(el('outcome'),'area');
   }
   function startShift(index) {
+    stopPlayback();
     if(state.shift===0 && index>0)state.guideOn=false;
     state.shift = index;
     run = runCorreio(index,state.config);
@@ -200,6 +228,19 @@ function correioPage() {
   root.onclick = event=>{
     const button = event.target.closest('button');
     if (!button || button.disabled) return;
+    if(button===el('level-continue')||button===el('level-close')){
+      el('level').close();
+      if(button===el('level-continue')&&state.shift<2)startShift(state.shift+1);
+      else el('outcome').scrollIntoView({block:'center'});
+      return;
+    }
+    if(button===el('play')){
+      if(timer){stopPlayback();drawGuide();return;}
+      const advance=()=>seek(state.cursor+1,run.frames[state.cursor]);
+      root.classList.add('cj-running');el('play').textContent='Pausar turno';
+      timer=setInterval(advance,1050);advance();return;
+    }
+    if(timer){stopPlayback();drawGuide();}
     if (button===el('guide-toggle')||button===el('guide-dismiss')) {
       state.guideOn=!state.guideOn;persist();drawGuide();
       if(!state.guideOn)el('guide-toggle').focus();
@@ -235,7 +276,8 @@ function correioPage() {
     else if (button===el('finish')) seek(run.frames.length-1);
   };
   root.onkeydown=event=>{
-    if(event.key==='Escape' && state.guideOn){event.preventDefault();el('guide-dismiss').click();}
+    if(event.key==='Escape' && state.guideOn && !el('level').open){event.preventDefault();el('guide-dismiss').click();}
   };
+  el('level').onclose=drawGuide;
   draw();
 }

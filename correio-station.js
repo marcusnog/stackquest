@@ -84,9 +84,7 @@ function correioStation(frame = {}, warehouseOnly = false, previousFrame) {
     let s=block(-length/2,-6,2,length,12,4,'#496a74','#354b58','#273e49');
     for(let a=-length/2+3;a<length/2;a+=5)
       s+=face([[a,-4,6],[a+1.6,-4,6],[a+1.6,4,6],[a,4,6]],'#9aafb0');
-    if(loaded) {
-      s+=face([[-5,1,6],[-3,-1,6],[1,1,6],[2,-3,6],[5,-2,6],[4,4,6]],'#f2cc72');
-    }
+    if(loaded) s+='<g class="cj-belt">'+face([[-5,1,6],[-3,-1,6],[1,1,6],[2,-3,6],[5,-2,6],[4,4,6]],'#f2cc72')+'</g>';
     return move(x,y,s);
   }
   function intake() {
@@ -112,7 +110,7 @@ function correioStation(frame = {}, warehouseOnly = false, previousFrame) {
   function workbench(id,index) {
     const active=occupied(id);
     let s=ellipse(0,6,29,9,'#b29f7e');
-    if(active) s+=move(-2,-12,clerk());
+    if(active) s+=move(-2,-12,'<g class="cj-clerk">'+clerk()+'</g>');
     else s+=move(-2,-12,block(-4,-3,2,8,6,7,'#80918b','#4a6564','#395557'));
     for(const [a,b] of [[-14,4],[12,4],[12,-7]]) s+=block(a,b,0,3,3,13,'#899592','#577473','#446768');
     s+=block(-15,-8,13,31,17,4,'#f3d49b','#bd986b','#987c5b');
@@ -168,25 +166,30 @@ function correioStation(frame = {}, warehouseOnly = false, previousFrame) {
   }
   const short = n => n < 1000 ? String(n) : new Intl.NumberFormat('pt-BR',{notation:'compact',maximumFractionDigits:1}).format(n);
   const positions=workers.length<=2?[[295,144],[326,167]]:[[296,136],[337,155],[258,156],[300,177]];
-  let movingParcel='';
+  const event=frame?.event||{}, desk=Number.isInteger(event.worker)?positions[event.worker]:null;
+  const queue=[174,141], printer=[467,148], retryRack=[494,150];
+  let movingParcel='',signal='';
   if(previousFrame){
-    const worker=workers.findIndex((id,i)=>occupied(id) && id!==previousFrame.workers[i]);
-    const dispatched=sent>previousFrame.sent;
-    if(dispatched || (worker>=0 && worker<positions.length)){
-      const [x,y]=dispatched?[378,159]:[178,139];
-      const [endX,endY]=dispatched?[467,148]:positions[worker];
-      const art=parcel(dispatched?frame.receipts.at(-1):workers[worker],12);
-      movingParcel=move(x,y,'<g class="cj-transit" style="--travel-x:'+(endX-x)+'px;--travel-y:'+(endY-y)+'px">'+art+'</g>');
-    }
+    let from,to;
+    if(event.kind==='receive'){from=queue;to=desk;}
+    if(event.kind==='print'){from=desk;to=printer;}
+    if(event.kind==='retry'){from=retryRack;to=queue;}
+    if(event.kind==='crash' && frame.delayed>previousFrame.delayed){from=desk;to=retryRack;}
+    if(from && to) movingParcel=move(...from,'<g class="cj-transit" style="--travel-x:'+(to[0]-from[0])+'px;--travel-y:'+(to[1]-from[1])+'px">'+parcel(event.order,12)+'</g>');
+  }
+  const labels={crash:'QUEDA',retry:'REENTREGA',dedupe:'JÁ REGISTRADO',print:'ETIQUETA',receive:'EM TRIAGEM'};
+  if(Object.hasOwn(labels,event.kind)){
+    const [x,y]=event.kind==='retry'?queue:event.kind==='print'?printer:desk||queue;
+    const id=/^P-\d{3}$/.test(event.order)?event.order:'';
+    signal=marker(x,y-67,labels[event.kind],id,event.kind==='crash'?'#ffaf95':'#ffe0a0');
   }
   let desks='';
   for(let i=0;i<Math.min(positions.length,workers.length);i++) desks+=move(...positions[i],workbench(workers[i],i));
   if(!workers.length) desks=move(295,148,block(-12,-8,0,26,16,3,'#c5ad85','#ab9677','#97866d'));
   const aria='Oficina postal. '+waiting.length+' na fila, '+busy+' de '+workers.length+' bancadas ocupadas, '+sent+' despachos e '+retries+' reentregas.';
   return '<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+aria+'" class="correio-station" viewBox="0 0 624 280" style="display:block;width:100%;height:auto">'+
-    '<style>@media(prefers-reduced-motion:no-preference){.correio-stamp{animation:correio-carimbo 1.5s ease-in-out infinite alternate}@keyframes correio-carimbo{from{transform:translateY(-2px)}to{transform:translateY(2px)}}}</style>'+
     '<rect width="624" height="280" fill="#203e4b"/><path d="M0 213L168 150 376 124 624 205V280H0Z" fill="#1e3946"/>'+
     depot()+intake()+conveyor(368,169,40,busy>0)+desks+dispatch()+movingParcel+
     marker(115,178,'NA FILA',short(waiting.length),'#ffda92')+marker(295,201,'EM TRABALHO',short(busy)+'/'+short(workers.length),'#a2edcf')+
-    marker(440,192,'DESPACHOS',short(sent),'#a2edcf')+marker(535,174,'REENTREGAS',short(retries),'#ffda92')+'</svg>';
+    marker(440,192,'DESPACHOS',short(sent),'#a2edcf')+marker(535,174,'REENTREGAS',short(retries),'#ffda92')+signal+'</svg>';
 }
