@@ -90,7 +90,36 @@ test('Lia contorna as bancadas, resolve os três incidentes e retoma o apagão s
     }
     s=warState(JSON.parse(JSON.stringify(s)));
   }
-  assert.equal(warTarget(s),null);assert.equal(warMove(s,'a'),false);
+  assert.equal(s.stage,3);assert.equal(warTarget(s).name,'Cartucho do catálogo');
+});
+test('plantão legado atravessa as nove janelas, com intervenção local, tentativas e retomada',()=>{
+  const {warTransmit,warWindow}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warTransmit,warWindow})');
+  for(const offset of [0,1,2]){
+    let s=warState({stage:3,hull:'sealed',x:7,y:2});
+    for(let stage=3;stage<6;stage++){
+      if(stage!==4)s.offset=offset;
+      assert.equal(warTransmit(s,0),null);
+      walkToTarget(s);assert.equal(warInteract(s),'item');walkToTarget(s);
+      for(let wave=0;wave<3;wave++){
+        const profile=(s.offset+wave)%3;
+        const correct=stage===3?[1,2,1][profile]:stage===4?[0,1,2][profile]:[5,10,4][profile];
+        const wrong=stage===3?0:stage===4?[2,0,1][profile]:0;
+        assert.equal(warTransmit(s,-1),null);assert.equal(warTransmit(s,wrong).ok,false);
+        s=warState(JSON.parse(JSON.stringify(s)));
+        assert.equal(s.wave,wave);assert.equal(s.setting,wrong);
+        assert.equal(warWindow(s).measure(wrong).ok,false);
+        assert.equal(warTransmit(s,correct).ok,true);
+        s=warState(JSON.parse(JSON.stringify(s)));
+        if(wave===0){
+          assert.equal(warTarget(s).kind,'relay');assert.equal(warTransmit(s,correct),null);
+          walkToTarget(s);assert.equal(warInteract(s),'relay');
+          s=warState(JSON.parse(JSON.stringify(s)));walkToTarget(s);
+        }
+      }
+      assert.equal(s.stage,stage+1);
+    }
+    assert.equal(warTarget(s),null);assert.equal(warMove(s,'a'),false);
+  }
 });
 test('a etiqueta precisa estar no facho e ao alcance; o quadro salvo continua energizado',()=>{
   const s=warState({stage:1,power:'torch',x:3,y:0,facing:'d'});

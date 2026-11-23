@@ -37,7 +37,7 @@
 @media(prefers-reduced-motion:no-preference){
   #wr-player,#wr-light-carrier{transition:transform var(--wr-step) linear}
   #wr-beam,#wr-held{transition:transform 100ms ease-out}
-  #wr-dark,#wr-drop,.wr-aurora{transition:opacity .24s ease-out}
+  #wr-dark,#wr-drop,.wr-solar-veil{transition:opacity .24s ease-out}
   #wr-ice>g{transition:opacity .32s ease-out}
   #wr-ice>g:nth-child(2){transition-delay:45ms}#wr-ice>g:nth-child(3){transition-delay:90ms}
   .wr-halo{animation:wr-marker 2.4s linear infinite}@keyframes wr-marker{to{stroke-dashoffset:-32}}
@@ -74,13 +74,7 @@
 .wr-game .wr-mapbar{background:linear-gradient(#364b4e,#22363d);border-bottom:3px double #b69c6f}
 .wr-mapbar h2{font-family:Georgia,serif;color:#f6dfa7}
 .wr-game #wr-board{isolation:isolate;position:relative;background:#142932;overflow:hidden}
-.wr-space{position:absolute;inset:0;pointer-events:none;z-index:-1;overflow:hidden;perspective:650px;background:#152933 url(warroom-stars.svg) 0 0 / 100% auto}
 .wr-map{position:relative}
-.wr-planet{position:absolute;right:21%;top:1%;width:9.5%;aspect-ratio:1;transform-style:preserve-3d;transform:rotateZ(-18deg)}
-.wr-planet i{position:absolute;inset:0;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 27% 24%,#fff6ca77 4%,transparent 36%,#0e223ad9 84%),repeating-linear-gradient(2deg,#cf9360 0 9%,#dfb582 13% 19%,#936657 24% 28%,#dab081 35%);box-shadow:-1px -1px 2px #ffe4ac99}
-.wr-planet b{position:absolute;inset:-25% -59%;border-radius:50%;transform:rotateX(68deg);border:5px double #d6bc89;box-shadow:0 0 0 2px #76675a,inset 0 0 0 2px #918373}
-.wr-aurora{position:absolute;inset:-4% -5% auto;height:32%;opacity:0;background:repeating-linear-gradient(103deg,transparent 0 5%,#e8ad5a65 7%,#68c7b077 9%,transparent 12%);mask-image:linear-gradient(transparent,#000 50%,transparent)}
-.wr-storm .wr-aurora{opacity:.8}
 .wr-flyby{position:absolute;inset:0;perspective:850px;pointer-events:none;visibility:hidden}
 .wr-rock{position:absolute;left:74%;top:24%;width:16px;height:16px;transform-style:preserve-3d;transform:rotateX(-28deg) rotateY(30deg)}
 .wr-rock i{position:absolute;inset:0;background:#af9076;border:1px solid #534c49;clip-path:polygon(15% 0,86% 4%,100% 80%,77% 100%,4% 88%,0 20%)}
@@ -92,11 +86,21 @@
 .wr-card #wr-radio{color:#39352f}.wr-card #wr-card-no,.wr-card #wr-time{color:#6a5036;text-transform:uppercase}.wr-card #wr-time{display:block;margin-top:10px}
 .wr-game #wr-progress{position:relative;gap:0;width:100px;margin:8px 0 4px}.wr-game #wr-progress i{width:30px;height:3px;background:#6e7366}.wr-game #wr-progress i.done{background:#e5b76e}
 #wr-ship{position:absolute;top:-9px;left:0;color:#f6d599;font-size:15px;line-height:18px;text-shadow:1px 2px #935944}
+.wr-game #wr-progress i{flex:0 0 15px}
+#wr-link:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;padding:10px 16px;background:#192f38;color:#f4e4bf;border-bottom:1px solid #46636c;font-size:.85rem}
+#wr-link progress{width:5rem;height:9px;accent-color:#80d9bc}#wr-signal{flex-basis:100%}
+#wr-inspiration{display:block;color:#d9ddcb;font-size:.75rem;margin-top:2px}
+.wr-solar-veil{opacity:0}.wr-storm .wr-solar-veil{opacity:.45}
+.wr-traffic{transform:translateX(246px)}.wr-racer{transform:translate(233px,-14px)}
+@media(prefers-reduced-motion:no-preference){
+  .wr-traffic{animation:wr-avenue 8s linear infinite}@keyframes wr-avenue{from{transform:translateX(-30px)}to{transform:translateX(620px)}}
+  .wr-racer{animation:wr-circuit 4.5s linear infinite}@keyframes wr-circuit{0%{transform:translate(-22px,29px)}35%{transform:translate(180px,3px)}55%{transform:translate(292px,-25px)}100%{transform:translate(622px,-13px)}}
+  .wr-storm .wr-solar-veil{animation:wr-solar 4s ease-in-out infinite alternate}@keyframes wr-solar{to{opacity:.2;transform:translateY(5px)}}
+}
+.wr-signal-alert .wr-console .wr-display{fill:#f8b575}
+@media(prefers-reduced-motion:no-preference){.wr-game[data-operation]:not([data-operation=""]) path.wr-display[fill="none"]{stroke-dasharray:19 4;animation:wr-telemetry 1.4s linear infinite}@keyframes wr-telemetry{to{stroke-dashoffset:-23}}}
 @media(prefers-reduced-motion:no-preference){
   #wr-ship{transition:transform .6s ease-in-out}
-  .wr-planet b{animation:wr-precession 14s ease-in-out infinite alternate}
-  @keyframes wr-precession{to{transform:rotateY(12deg) rotateX(73deg)}}
-  .wr-storm .wr-aurora{animation:wr-wind 5s ease-in-out infinite alternate}@keyframes wr-wind{to{transform:translateX(4%) skewX(-9deg)}}
   .wr-impacting .wr-flyby{animation:wr-impact .85s ease-in both}
   .wr-impacting .wr-rock{animation:wr-tumble .85s linear}
   @keyframes wr-impact{0%{visibility:visible;transform:translate(-56%,-28%);opacity:.3}88%{opacity:1}100%{visibility:hidden;transform:translate(0,0);opacity:0}}
