@@ -2,9 +2,9 @@ const apiOrigin='https://stackquest.157.254.207.208.nip.io';
 const sessionKey='stackquest.session.v1';
 const pendingKey='stackquest.pending.v1.';
 const account={name:'',token:'',rows:new Map(),pending:new Map(),conflicts:new Map(),sync:null,timer:0,error:''};
-async function callApi(path,method='GET',body){
+async function callApi(path,method='GET',body,{authenticated=true}={}){
   const headers={};
-  if(account.token)headers.Authorization='Bearer '+account.token;
+  if(authenticated&&account.token)headers.Authorization='Bearer '+account.token;
   if(body!==undefined)headers['Content-Type']='application/json';
   const res=await fetch(apiOrigin+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(15000)});
   const data=await res.json();
