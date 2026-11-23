@@ -21,6 +21,26 @@ function accounts(filename){
     CREATE INDEX IF NOT EXISTS sessions_expiry ON sessions(expires);
     CREATE TABLE IF NOT EXISTS progress(user_id INTEGER NOT NULL REFERENCES users(id),key TEXT NOT NULL, value TEXT NOT NULL,version INTEGER NOT NULL, PRIMARY KEY(user_id,key));`);
   const rates=new Map();let hashing=0;
+  // Index the completion flags so a public read never scans saved code, diagrams or notes.
+  const activityXP=`CASE
+    WHEN key GLOB 'stackquest.missao.v1.*' AND json_extract(value,'$.date') GLOB '????-??-??' THEN 100
+    WHEN key GLOB 'stackquest.lab.v1.*' AND json_extract(value,'$.schema')=1
+      AND json_type(value,'$.files')='object' AND json_type(value,'$.cluster')='object'
+      AND json_type(value,'$.earned')='true' THEN 200
+    WHEN key GLOB 'stackquest.db.v1.*' AND json_type(value,'$.trials')='array'
+      AND json_type(value,'$.accepted')='object' AND json_type(value,'$.accepted.date')='text' THEN 50
+    ELSE 0 END`;
+  db.exec(`CREATE INDEX IF NOT EXISTS progress_ranking_v1 ON progress(user_id, ${activityXP}) WHERE ${activityXP}>0`);
+  const standings=db.prepare(`WITH totals AS (
+    SELECT user_id, SUM(${activityXP}) AS xp FROM progress WHERE ${activityXP}>0 GROUP BY user_id
+  ), ranked AS (
+    SELECT u.name, t.xp, RANK() OVER (ORDER BY t.xp DESC) AS position
+    FROM totals t JOIN users u ON u.id=t.user_id
+  )
+  SELECT (SELECT COUNT(*) FROM ranked) AS total,
+    (SELECT json_group_array(json_object('name',name,'xp',xp,'position',position))
+      FROM (SELECT * FROM ranked ORDER BY xp DESC,name LIMIT ? OFFSET ?)) AS entries,
+    (SELECT json_object('name',name,'xp',xp,'position',position) FROM ranked WHERE name=?) AS mine`);
   function throttle(req){
     const ip=String(req.headers['x-forwarded-for']||req.socket.remoteAddress).split(',').at(-1).trim();
     const now=Date.now();
@@ -38,6 +58,14 @@ function accounts(filename){
     return {name:user.name,records:db.prepare('SELECT key,value,version FROM progress WHERE user_id=?').all(user.id)};
   }
   async function route(req,send){
+    if(req.method==='GET'&&req.url.split('?')[0]==='/api/ranking'){
+      const pageText=new URL(req.url,'http://localhost').searchParams.get('page')??'1';
+      if(!/^[1-9]\d{0,7}$/.test(pageText))throw failure(400,'Página inválida.');
+      const name=req.headers.authorization?identity(req).user.name:null;
+      const page=Number(pageText),pageSize=25;
+      const row=standings.get(pageSize,(page-1)*pageSize,name);
+      return send(200,{page,pageSize,total:row.total,entries:JSON.parse(row.entries),mine:JSON.parse(row.mine)});
+    }
     if(req.method==='POST'&&['/api/auth/register','/api/auth/login'].includes(req.url)){
       const body=await json(req,2048);
       const name=typeof body.name==='string'?body.name.trim().toLowerCase():'';

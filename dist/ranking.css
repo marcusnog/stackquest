@@ -1,0 +1,14 @@
+.leaderboard{max-width:900px}
+.ranking-toolbar,.ranking-pages{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ranking-toolbar{margin-bottom:12px}.ranking-toolbar h2{margin:0}
+.leaderboard [data-personal]{background:var(--subtle,#edf2f5);color:var(--ink);border-left:3px solid var(--accent-ink,#973d14);padding:12px 15px;margin:16px 0;border-radius:4px}
+.leaderboard [role=status]{color:var(--muted);font-size:.9rem}
+.leaderboard table{width:100%;border-collapse:collapse;text-align:left}
+.leaderboard th,.leaderboard td{padding:10px 7px;border-bottom:1px solid var(--line)}
+.leaderboard thead,.leaderboard small{font-size:.82rem;color:var(--muted)}
+.leaderboard tbody th{overflow-wrap:anywhere}.leaderboard td{font-family:var(--mono)}
+.leaderboard th:last-child,.leaderboard td:last-child{text-align:right}
+.ranking-mine{background:var(--accent-soft,#fff0e5)}.ranking-pages{margin-top:15px;font-size:.9rem}
+.ranking-pages[hidden]{display:none}.ranking-pages button{border:1px solid var(--line);border-radius:5px;padding:5px 10px}
+.leaderboard button:disabled{opacity:.48;cursor:default}
+@media(max-width:700px){.sidegroup nav{flex-wrap:wrap}.sidegroup nav a{min-width:3.5rem}}
