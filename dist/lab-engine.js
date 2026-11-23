@@ -143,22 +143,40 @@ async function requestLab(s,address) {
     log('GET '+url.pathname+' '+r.status);return r;
   }catch(error){log('ERRO '+error.message);throw error;}
 }
-async function runTests(s){
+async function runTests(s,progress){
   s.lastTest=null;
-  const tests=JSON.parse(s.files['tests.json']);
+  const source=s.files['app.js'],spec=s.files['tests.json'],tests=JSON.parse(spec);
   if(!Array.isArray(tests)||tests.length<1||tests.length>30||tests.some(t=>!t||typeof t.path!=='string'||!Number.isInteger(t.status)))throw Error('tests.json deve conter de 1 a 30 casos com path e status.');
-  const results=await runProgram(s.files['app.js'],tests.map(t=>({method:'GET',path:t.path})));
-  const passed=tests.map((t,i)=>t.status===results[i].status&&(!Object.hasOwn(t,'body')||t.body===results[i].body));
-  if(passed.every(Boolean))s.lastTest={source:s.files['app.js'],tests:s.files['tests.json']};
-  return tests.map((t,i)=>(passed[i]?'PASS':'FAIL')+'  GET '+t.path+'  → '+results[i].status+' '+results[i].body+(passed[i]?'':'  (esperado '+t.status+' '+(t.body??'')+')')).join('\n')+'\n'+passed.filter(Boolean).length+'/'+tests.length+' testes passaram.';
+  const requests=tests.map(t=>({method:'GET',path:t.path}));
+  const lines=[];
+  let passed=0;
+  function record(result,i){
+    const t=tests[i],ok=t.status===result.status&&(!Object.hasOwn(t,'body')||t.body===result.body);
+    if(ok)passed++;
+    const line=(ok?'PASS':'FAIL')+'  GET '+t.path+'  → '+result.status+' '+result.body+(ok?'':'  (esperado '+t.status+' '+(t.body??'')+')');
+    lines.push(line);
+    return progress?.(line,ok?'pass':'error');
+  }
+  if(progress){
+    await progress('Executando '+tests.length+' testes de app.js…');
+    for(const [i,request] of requests.entries()){
+      let result;
+      try{[result]=await runProgram(source,[request]);}
+      catch(error){throw Error('GET '+request.path+' · '+error.message);}
+      await record(result,i);
+    }
+  }else (await runProgram(source,requests)).forEach(record);
+  if(passed===tests.length)s.lastTest={source,tests:spec};
+  const summary=passed+'/'+tests.length+' testes passaram.';
+  return progress?summary:[...lines,summary].join('\n');
 }
 function hostRows(s){return Object.entries(s.hosts).map(([name,h])=>name+'  '+h.network+'  app '+(h.running?'ativo':'parado')+'  portas '+(h.ports.join(',')||'—')).join('\n')||'Nenhuma instância provisionada.';}
-async function labCommand(s,input) {
+async function labCommand(s,input,progress) {
   const cmd=input.trim().replace(/\s+/g,' ');let m;
   if(cmd==='help')return 'Arquivos: ls, cat ARQUIVO, npm test\nVPS: vps create NOME, vps list, ssh NOME, hostname, exit\nHost: ufw allow PORTA, ufw status, systemctl start|stop|status app, journalctl -u app\nDeploy: deploy HOST, curl http://HOST:8080/health\nCloud: cloud network create REDE, cloud instance create HOST --network REDE, cloud firewall allow HOST PORTA, cloud lb create LB --target HOST, cloud list\nKubernetes: kubectl apply -f ARQUIVO, kubectl get pods|deployments|svc, kubectl scale deployment/NOME --replicas=N, kubectl delete pod NOME, kubectl logs deployment/NOME';
   if(cmd==='ls')return Object.keys(s.files).join('  ');
   if((m=/^cat (\S+)$/.exec(cmd)))return getItem(s.files,m[1],'Arquivo');
-  if(cmd==='npm test')return runTests(s);
+  if(cmd==='npm test')return runTests(s,progress);
   if(cmd==='hostname')return s.ssh||'workspace';
   if(cmd==='exit'){s.ssh=null;return 'Você está no terminal do workspace.';}
   if(cmd==='vps list'||cmd==='cloud list')return hostRows(s)+(s.networks.length?'\nRedes: '+s.networks.join(', '):'')+(Object.keys(s.balancers).length?'\nBalanceadores: '+Object.entries(s.balancers).map(([k,v])=>k+' → '+v.target).join(', '):'');
@@ -168,7 +186,17 @@ async function labCommand(s,input) {
   if((m=/^cloud instance create (\S+) --network (\S+)$/.exec(cmd))){newName(s.hosts,m[1]);if(!s.networks.includes(m[2]))throw Error('Crie a rede antes da instância.');s.hosts[m[1]]=hostConfig(m[2]);return 'Instância '+m[1]+' na rede '+m[2]+'.';}
   if((m=/^cloud lb create (\S+) --target (\S+)$/.exec(cmd))){newName(s.balancers,m[1]);getItem(s.hosts,m[2],'Alvo');s.balancers[m[1]]={target:m[2]};return 'Listener '+m[1]+':80 → '+m[2]+':8080.';}
   if((m=/^(?:cloud firewall allow (\S+)|ufw allow) (\d+)$/.exec(cmd))){const h=getItem(s.hosts,m[1]||s.ssh,'Host');const port=numberIn(m[2],1,65535,'Porta');if(!h.ports.includes(port))h.ports.push(port);return 'Entrada TCP/'+port+' permitida.';}
-  if((m=/^deploy (\S+)$/.exec(cmd))){const h=getItem(s.hosts,m[1],'Host');h.source=s.files['app.js'];h.release++;h.running=true;logHost(h,'release '+h.release+' iniciada');return 'Release '+h.release+' de app.js instalada em '+m[1]+':8080.';}
+  if((m=/^deploy (\S+)$/.exec(cmd))){
+    const host=m[1],h=getItem(s.hosts,host,'Host'),source=s.files['app.js'];
+    if(progress){
+      await progress('Conexão com '+host+' estabelecida.');
+      await progress('Preparando app.js para publicação…');
+      await progress('Iniciando o serviço app em '+host+':8080…');
+    }
+    const release=h.release+1;
+    h.source=source;h.release=release;h.running=true;logHost(h,'release '+release+' iniciada');
+    return 'Release '+release+' de app.js instalada em '+host+':8080.';
+  }
   if(cmd==='ufw status'||cmd==='journalctl -u app'||cmd.startsWith('systemctl ')){
     if(!s.ssh)throw Error('Abra a sessão do host com ssh NOME.');
     const h=s.hosts[s.ssh];

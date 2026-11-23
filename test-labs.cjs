@@ -30,6 +30,26 @@ test('A doca verifica o código remoto e exige um novo deploy após o teste loca
   assert.equal((await warDeliveryCommand(lab,warSmoke)).verified,true);
 });
 
+test('O terminal entrega resultados individuais e só ativa a release após preparar o serviço',async()=>{
+  const {warDeliveryLab,warDeliveryFile,warDeliveryCommand}=fixture();
+  const lab=warDeliveryLab(warDeliveryFile),rows=[];
+  const result=await warDeliveryCommand(lab,'npm test',(text,level)=>{
+    assert.equal(lab.lastTest,null);
+    rows.push({text,level});
+  });
+  assert.equal(rows.filter(row=>row.level==='pass').length,4);
+  assert.match(rows.find(row=>row.level==='error').text,/FAIL.*GET \/ready .*esperado 200 pronto/);
+  assert.equal(result.level,'error');
+  assert.match(result.text,/4\/5/);
+  const host=lab.hosts['web-01'],before=host.release,steps=[];
+  await warDeliveryCommand(lab,'deploy web-01',text=>{
+    assert.equal(host.release,before);
+    steps.push(text);
+  });
+  assert.equal(steps.length,3);
+  assert.equal(host.release,before+1);
+});
+
 test('O terminal do notebook migra rascunhos e exige testes, publicação e confirmação antes do push',async()=>{
   const {warDeliveryState,warDeliveryLab,warDeliveryRun,warDeliveryGuide,warPipelineSteps,warPipelineFile,warSmoke}=fixture();
   const s=warDeliveryState({steps:'      - run: npm test'}),lab=warDeliveryLab(s.source),messages=[];

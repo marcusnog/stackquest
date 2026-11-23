@@ -168,17 +168,30 @@ function warroomPage(drill,startDelivery=false){
     if(!quiet)anchor.classList.add('wr-mission-focus');
   }
   el('toggle-coach').onclick=()=>{quiet=!quiet;paintMission();};
-  const log=text=>{const out=el('shell-log');out.textContent=(out.textContent+'\n'+text).trimStart().slice(-9000);out.scrollTop=out.scrollHeight;};
+  const output=el('shell-log'),execute=el('command').querySelector('button');
+  function log(text,level){
+    const follow=output.scrollHeight-output.clientHeight-output.scrollTop<=4;
+    const entry=document.createElement('span');
+    if(level)entry.dataset.level=level;
+    entry.textContent=String(text).slice(-8999)+'\n';
+    output.append(entry);
+    while(output.textContent.length>9000)output.firstChild.remove();
+    if(follow)output.scrollTop=output.scrollHeight;
+  }
+  async function reportStep(text,level){
+    log(text,level);
+    await new Promise(resolve=>setTimeout(resolve,160));
+  }
   el('command').onsubmit=async e=>{
     e.preventDefault();const line=el('command-line'),cmd=line.value.trim();if(busy||!cmd)return;
-    busy=true;editor?.lock(true);source.readOnly=true;line.readOnly=true;el('command').querySelector('button').disabled=true;
+    busy=true;editor?.lock(true);source.readOnly=true;line.readOnly=true;execute.disabled=true;execute.textContent='Executando…';
     log('$ '+cmd);line.value='';
-    try{await warDeliveryRun(delivery,lab,cmd,log);}
-    catch(error){log('ERRO › '+error.message);}
+    try{await warDeliveryRun(delivery,lab,cmd,reportStep);}
+    catch(error){log('ERRO › '+error.message,'error');}
     finally{
       busy=false;
       if(notebook.isConnected){
-        saveDelivery();editor?.lock(false);source.readOnly=false;line.readOnly=false;el('command').querySelector('button').disabled=false;paintMission();
+        saveDelivery();editor?.lock(false);source.readOnly=false;line.readOnly=false;execute.disabled=false;execute.textContent='Executar';paintMission();
       }
     }
   };

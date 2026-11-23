@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="studio.css">
   <link rel="stylesheet" href="architecture.css?v=20261122-arch1">
-  <link rel="stylesheet" href="appearance.css?v=20261122-arch2">
+  <link rel="stylesheet" href="appearance.css?v=study-menu1">
   <script src="icons.js" defer></script>
   <script src="account.js?v=github1" defer></script>
   <script src="appearance.js?v=20261122-arch1" defer></script>
@@ -20,7 +20,7 @@
   <script src="ai-practice.js" defer></script>
   <script src="lab-guides.js" defer></script>
   <script src="lab-runner.js" defer></script>
-  <script src="lab-engine.js" defer></script>
+  <script src="lab-engine.js?v=live1" defer></script>
   <script src="labs.js?v=janelas1" defer></script>
   <script src="practice-guides.js" defer></script>
   <script src="studio.js?v=20261122-arch1" defer></script>
@@ -45,22 +45,23 @@
   <script src="correio.js?v=turnos2" defer></script>
   <link rel="stylesheet" href="communities.css?v=1">
   <script src="communities.js?v=1" defer></script>
-  <link rel="stylesheet" href="warroom.css?v=terminal3">
+  <link rel="stylesheet" href="warroom.css?v=live1">
   <script src="warroom-engine.js?v=ide-protecao1" defer></script>
   <script src="warroom-field.js?v=campo1" defer></script>
   <script src="warroom-scenes.js?v=janelas1" defer></script>
   <script src="warroom-map.js?v=ide-protecao1" defer></script>
   <script src="warroom-audio.js?v=pulsos1" defer></script>
-  <script src="warroom.js?v=terminal3" defer></script>
-  <script src="warroom-delivery.js?v=notebook-doca1" defer></script>
-  <script src="app.js?v=notebook-doca1" defer></script>
+  <script src="warroom.js?v=live1" defer></script>
+  <script src="warroom-delivery.js?v=live1" defer></script>
+  <script src="app.js?v=study-menu1" defer></script>
   <script src="blueprint.js" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Pular para o conteúdo</a>
   <aside id="sidebar">
     <a class="brand" href="#roadmap"><img width="36" height="36" src="mark.svg" alt="">Stack<span>Quest</span></a>
-    <div class="sidegroup"><div class="eyebrow navlabel">Área de estudo</div><nav aria-label="Navegação principal" id="nav"></nav></div>
+    <button type="button" id="study-menu" aria-controls="study-links" aria-expanded="false">Menu de estudo</button>
+    <div class="sidegroup" id="study-links"><nav aria-label="Navegação principal" id="nav"></nav></div>
     <div class="profile" id="profile" hidden></div>
   </aside>
   <div class="shell">

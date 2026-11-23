@@ -8,7 +8,7 @@ function warDeliveryLab(source){
   lab.files['tests.json']=JSON.stringify([...defaultTests,{path:'/ready',status:200,body:'pronto'},{path:'/readyz',status:404}]);
   return lab;
 }
-async function warDeliveryCommand(lab,line){
+async function warDeliveryCommand(lab,line,progress){
   const cmd=line.trim().replace(/\s+/g,' ');
   if(cmd==='help')return {text:['npm test','deploy web-01','curl '+warReadyUrl,warSmoke,'systemctl status app','journalctl -u app'].join('\n')};
   if(cmd==='curl '+warReadyUrl||cmd===warSmoke){
@@ -16,10 +16,11 @@ async function warDeliveryCommand(lab,line){
     const verified=lab.hosts['web-01'].release>0&&response.status===200&&response.body==='pronto';
     const text='HTTP '+response.status+' · '+response.body;
     if(cmd===warSmoke&&!verified)throw Error(text+' · verificação de prontidão falhou.');
-    return {verified,text};
+    return {verified,text,level:response.status>=400?'error':undefined};
   }
   if(!['npm test','deploy web-01','systemctl status app','journalctl -u app'].includes(cmd))throw Error('Comando desconhecido. Digite help para consultar o terminal da estação.');
-  return {text:await labCommand(lab,cmd)};
+  const text=await labCommand(lab,cmd,progress);
+  return {text,level:cmd==='npm test'&&!lab.lastTest?'error':undefined};
 }
 function warWorkflowCommands(steps){
   const commands=[];
@@ -35,13 +36,13 @@ function warWorkflowCommands(steps){
 async function warRunWorkflow(source,steps,log){
   const lab=warDeliveryLab(source),commands=warWorkflowCommands(steps);
   let deployed=false,verified=false;
-  log('push → checkout · VPS limpa');
+  await log('push → checkout · VPS limpa');
   for(const cmd of commands){
-    log('$ '+cmd);
+    await log('$ '+cmd);
     if(!['npm test','deploy web-01',warSmoke].includes(cmd))throw Error('Este runner aceita npm test, deploy web-01 e a consulta com curl -fsS a /ready.');
     if(cmd==='deploy web-01'&&!lab.lastTest)throw Error('Deploy bloqueado. Execute os testes antes de publicar.');
-    const result=await warDeliveryCommand(lab,cmd);
-    log(result.text);
+    const result=await warDeliveryCommand(lab,cmd,log);
+    await log(result.text,result.level);
     if(cmd==='npm test'&&!lab.lastTest)throw Error('Testes falharam. A execução parou antes da próxima etapa.');
     if(cmd==='deploy web-01'){deployed=true;verified=false;}
     if(result.verified)verified=true;
@@ -104,7 +105,7 @@ async function warDeliveryRun(state,lab,input,log){
   if(cmd==='deploy web-01'&&state.stage===0)throw Error('Rode npm test e corrija as falhas antes de publicar esta versão.');
   const priorStage=state.stage;
   if(cmd==='npm test'){state.tried=true;state.failed=true;state.stage=0;}
-  const result=await warDeliveryCommand(lab,cmd);log(result.text);
+  const result=await warDeliveryCommand(lab,cmd,log);log(result.text,result.level);
   if(cmd==='npm test'){
     state.failed=!lab.lastTest;
     if(lab.lastTest)state.stage=Math.max(1,priorStage);
