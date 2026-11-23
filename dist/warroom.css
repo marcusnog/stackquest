@@ -75,6 +75,18 @@
 .wr-mapbar h2{font-family:Georgia,serif;color:#f6dfa7}
 .wr-game #wr-board{isolation:isolate;position:relative;background:#142932;overflow:hidden}
 .wr-map{position:relative}
+.wr-drills{margin:0 0 14px;padding:8px 14px;background:#1f3740;border:1px solid #78816d;border-radius:8px;color:#f0e7ce}
+.wr-drills summary{cursor:pointer;padding:6px 0}.wr-drills nav{line-height:2}.wr-drills a{color:#ffdf9f;text-underline-offset:3px}.wr-finished{padding:24px}
+#wr-weather:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;background:#41382e;color:#ffdfa2;padding:10px 16px}#wr-forecast{flex:1 1 220px}
+.wr-game[data-hazard="dust"] #wr-board::after{content:'';position:absolute;pointer-events:none;inset:0;background:repeating-linear-gradient(-14deg,transparent 0 18px,#dbb17c24 19px,transparent 21px 44px);background-size:210px 130px}
+.wr-game[data-hazard="quake"] .wr-mapbar{border-bottom-color:#ffb168}
+@media(prefers-reduced-motion:no-preference){.wr-game[data-hazard="dust"] #wr-board::after{animation:wr-blowing-dust 3.5s linear infinite}@keyframes wr-blowing-dust{to{background-position:210px 0}}}
+.wr-pipes{display:grid;grid-template-columns:repeat(3,1fr);width:min(100%,225px);gap:3px;margin:4px auto}
+.wr-game .wr-pipes button{background:#233742;color:#a8c4c8;padding:0;aspect-ratio:1;border:2px solid #66838b;border-radius:5px}
+.wr-pipes svg{display:block;width:100%;height:100%}.wr-game .wr-pipes .wr-powered{color:#ffe39c;border-color:#e0b76d}
+.wr-dial{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.wr-dial span{text-align:center;padding:8px 0;background:#263f49;color:#e8eee9;border:2px solid transparent;border-radius:5px}
+.wr-dial .wr-target{border:2px dashed #ffce80}.wr-dial .wr-dish{background:#27655d;box-shadow:inset 0 -5px #90ebcc}
+.wr-steering{display:flex;gap:8px}.wr-steering button{flex:1}#wr-input .wr-sample{border:1px solid var(--control-edge);border-radius:6px}
 .wr-flyby{position:absolute;inset:0;perspective:850px;pointer-events:none;visibility:hidden}
 .wr-rock{position:absolute;left:74%;top:24%;width:16px;height:16px;transform-style:preserve-3d;transform:rotateX(-28deg) rotateY(30deg)}
 .wr-rock i{position:absolute;inset:0;background:#af9076;border:1px solid #534c49;clip-path:polygon(15% 0,86% 4%,100% 80%,77% 100%,4% 88%,0 20%)}

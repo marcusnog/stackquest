@@ -32,10 +32,11 @@ function walkToTarget(state){
   while(queue.length){
     const [here,path]=queue.shift();
     if(warNear(here,pos)){for(const key of path)assert.ok(warMove(state,key));return;}
-    if(seen.has(here.x+','+here.y))continue;
-    seen.add(here.x+','+here.y);
+    const position=here.x+','+here.y+','+here.field.beat;
+    if(seen.has(position))continue;
+    seen.add(position);
     for(const key of Object.keys(warDirections)){
-      const next={...here};if(warMove(next,key))queue.push([next,[...path,key]]);
+      const next={...here,field:{...here.field}};if(warMove(next,key))queue.push([next,[...path,key]]);
     }
   }
   assert.fail('Objetivo inacessível');
@@ -93,7 +94,7 @@ test('Lia contorna as bancadas, resolve os três incidentes e retoma o apagão s
   assert.equal(s.stage,3);assert.equal(warTarget(s).name,'Cartucho do catálogo');
 });
 test('plantão legado atravessa as nove janelas, com intervenção local, tentativas e retomada',()=>{
-  const {warTransmit,warWindow}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warTransmit,warWindow})');
+  const {warTransmit,warWindow,warFieldAction,warBeacon}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warTransmit,warWindow,warFieldAction,warBeacon})');
   for(const offset of [0,1,2]){
     let s=warState({stage:3,hull:'sealed',x:7,y:2});
     for(let stage=3;stage<6;stage++){
@@ -111,14 +112,47 @@ test('plantão legado atravessa as nove janelas, com intervenção local, tentat
         assert.equal(warTransmit(s,correct).ok,true);
         s=warState(JSON.parse(JSON.stringify(s)));
         if(wave===0){
-          assert.equal(warTarget(s).kind,'relay');assert.equal(warTransmit(s,correct),null);
+          assert.equal(warTransmit(s,correct),null);
+          if(stage===4){
+            for(let n=0;n<2;n++){
+              walkToTarget(s);assert.equal(warInteract(s),'probe');s=warState(JSON.parse(JSON.stringify(s)));
+            }
+          }
           walkToTarget(s);assert.equal(warInteract(s),'relay');
+          assert.equal(s.relayReady,false);
+          if(stage===3){
+            assert.equal(warFieldAction(s,'test').done,false);
+            for(const i of [0,1,1,4,4,5]){warFieldAction(s,'turn',i);s=warState(JSON.parse(JSON.stringify(s)));}
+            assert.equal(warFieldAction(s,'test').done,true);
+          }else if(stage===4){
+            assert.equal(warFieldAction(s,'sync',0).done,false);
+            assert.equal(warFieldAction(s,'sync',1).done,true);
+          }else{
+            for(let p=0;p<3;p++){
+              const {goal,gust}=warBeacon(s),aim=goal-gust;
+              while(s.field.dish!==aim)warFieldAction(s,'steer',Math.sign(aim-s.field.dish));
+              assert.equal(warFieldAction(s,'capture').done,p===2);s=warState(JSON.parse(JSON.stringify(s)));
+            }
+          }
           s=warState(JSON.parse(JSON.stringify(s)));walkToTarget(s);
         }
       }
       assert.equal(s.stage,stage+1);
     }
     assert.equal(warTarget(s),null);assert.equal(warMove(s,'a'),false);
+  }
+});
+test('tremor e tempestade anunciam, barram a entrada no impacto e deixam uma saída',()=>{
+  const {warHazard,warWeatherTurn,warFieldAction}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warHazard,warWeatherTurn,warFieldAction})');
+  for(const stage of [3,5]){
+    const s=warState({stage,wave:1,x:stage===3?1:5,y:1,field:{beat:2}});
+    assert.equal(warHazard(s).remaining,1);
+    const before=s.x;assert.equal(warMove(s,'d'),false);assert.equal(s.x,before);
+    assert.equal(warHazard(s).remaining,3);assert.equal(warMove(s,'d'),true);
+    warWeatherTurn(s);assert.equal(warHazard(s).remaining,1);
+    assert.equal(warFieldAction(s,'capture'),null);
+    const old=warState({stage,wave:1,relayReady:true});assert.equal(warHazard(old),null);
+    assert.equal(warTarget(old).kind,'puzzle');
   }
 });
 test('a etiqueta precisa estar no facho e ao alcance; o quadro salvo continua energizado',()=>{
