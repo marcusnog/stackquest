@@ -58,6 +58,28 @@ test('o rádio conduz Lia de cada casa livre até a coleta e o terminal',()=>{
   }
   for(const stage of [1,2,3])assert.equal(guide.warTutorialStep(warState({stage})),null);
 });
+test('o guia do rastreador conduz à casa exata e acompanha estoque, notebook, receita e impressão',()=>{
+  const {warTrackerStep,warWalkable,warGather,warPrint}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warTrackerStep,warWalkable,warGather,warPrint})');
+  for(let y=0;y<5;y++)for(let x=0;x<9;x++){
+    if(!warWalkable(x,y))continue;
+    const s=warState({x,y}),visited=new Set();
+    let tip=warTrackerStep(s,false,'');
+    while(tip.step===1){
+      const cell=s.x+','+s.y;assert.ok(!visited.has(cell));visited.add(cell);
+      assert.ok(warMove(s,tip.key));tip=warTrackerStep(s,false,'');
+    }
+    assert.deepEqual([s.x,s.y,tip.key],[2,4,'gather']);
+  }
+  let s=warState({x:2,y:4});
+  const key=(open=false,code='')=>warTrackerStep(s,open,code)?.key;
+  assert.equal(key(true),'shut');
+  warGather(s);s=warState(JSON.parse(JSON.stringify(s)));assert.equal(key(),'gather');
+  warGather(s);assert.equal(key(),'laptop');
+  assert.equal(key(true),'code');assert.equal(key(true,'imprimir("cobre", 1)'),'code');
+  const code="imprimir( 'cobre', 2 );";assert.equal(key(true,code),'print-item');
+  assert.equal(key(),'laptop');assert.equal(s.materials.cobre,2);
+  assert.equal(warPrint(s,code).ok,true);assert.equal(key(true,code),undefined);
+});
 test('Lia contorna as bancadas, resolve os três incidentes e retoma o apagão salvo',()=>{
   let s=warState();
   assert.equal(warMove(s,'a'),false);assert.equal(warInteract(s),'far');
