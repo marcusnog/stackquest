@@ -1,0 +1,93 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm');
+const scripts=['plantao-engine','plantao-workshop','plantao-guide','plantao'].map(name=>fs.readFileSync(require.resolve('./dist/'+name+'.js'),'utf8')).join('\n');
+const {plantaoState,plantaoBag,plantaoCollect,plantaoCraft,plantaoInstall,plantaoUninstall,plantaoRecycle,plantaoGuide,runPlantao}=
+  vm.runInNewContext('const archLessons={checkout:"3-1"},archClouds={aws:{}};'+scripts+';({plantaoState,plantaoBag,plantaoCollect,plantaoCraft,plantaoInstall,plantaoUninstall,plantaoRecycle,plantaoGuide,runPlantao})');
+const plain=x=>JSON.parse(JSON.stringify(x));
+test('inventário conserva hardware ao montar, instalar, remover, desmontar e retomar',()=>{
+  const s=plantaoState();
+  assert.equal(plantaoCraft(s,'api'),false);
+  assert.equal(plantaoInstall(s,'api',2),false);
+  plantaoCollect(s,'cpu');plantaoCollect(s,'ram');
+  const before=plain(plantaoBag(s));
+  assert.ok(plantaoCraft(s,'api'));
+  assert.equal(plantaoInstall(s,'api',4),false);
+  assert.deepEqual(plain(plantaoState(plain(s))),plain(s));
+  assert.ok(plantaoInstall(s,'api',2));
+  assert.equal(plantaoRecycle(s,'api'),false);
+  s.edges.push({from:4,to:2});
+  assert.ok(plantaoUninstall(s,2));
+  assert.equal(s.edges.length,0);
+  assert.equal(plantaoUninstall(s,2),false);
+  assert.ok(plantaoRecycle(s,'api'));
+  assert.equal(plantaoRecycle(s,'api'),false);
+  assert.deepEqual(plain(plantaoBag(s)),before);
+});
+test('migração da loja antiga preserva mapa, cabos, placar e hardware instalado',()=>{
+  const tiles=Array(16).fill(null);tiles[4]='client';tiles[0]='api';tiles[8]='kv';
+  const raw={tiles,edges:[{from:4,to:0},{from:0,to:8}],pool:3,policy:'condicional',cleared:2,wave:2,scores:[{correct:3,total:3,spent:7,p95:40}]};
+  const s=plantaoState(raw);
+  assert.deepEqual(plain(s.tiles),tiles);
+  assert.deepEqual(plain(s.edges),raw.edges);
+  assert.deepEqual(plain(s.scores[0]),raw.scores[0]);
+  assert.deepEqual(plain(plantaoBag(s)),{cpu:0,ram:0,ssd:0});
+  assert.ok(runPlantao(s,2).pass);
+  assert.equal(s.guideOn,false);
+  assert.deepEqual(plain(plantaoState(plain(s))),plain(s));
+  assert.ok(plantaoUninstall(s,8));
+  assert.ok(plantaoRecycle(s,'kv'));
+  assert.deepEqual(plain(plantaoBag(s)),{cpu:1,ram:2,ssd:1});
+});
+test('limites de estoque, créditos e restauração não duplicam kits',()=>{
+  const s=plantaoState({workshop:{harvested:{cpu:99,ram:99,ssd:99},kits:{cache:99,api:-3}}});
+  assert.equal(s.workshop.kits.cache,6);
+  assert.equal(plantaoCollect(s,'ram'),0);
+  for(let i of [0,1,2,3,5,6])assert.ok(plantaoInstall(s,'cache',i));
+  assert.ok(plantaoUninstall(s,0));
+  assert.equal(plantaoCraft(s,'api'),false);
+  assert.ok(plantaoRecycle(s,'cache'));
+  assert.ok(plantaoCraft(s,'api'));
+  assert.equal(plantaoInstall(s,'api',0),false);
+  assert.equal(s.workshop.kits.api,1);
+});
+test('movimento reduzido suprime cada animação e o modo normal fornece quadros de transição',()=>{
+  let reduced=false;
+  const window={matchMedia(query){assert.equal(query,'(prefers-reduced-motion: reduce)');return {matches:reduced};}};
+  const animate=vm.runInNewContext('const archLessons={checkout:"3-1"};'+scripts+';plantaoAnimate',{window});
+  const calls=[];
+  const node={animate(frames,options){calls.push({frames,options});}};
+  for(const kind of ['collect','install','wire','area'])animate(node,kind);
+  assert.equal(calls.length,4);
+  assert.ok(calls.every(c=>c.frames.length===2 && c.options.duration>0));
+  reduced=true;
+  for(const kind of ['collect','install','wire','area'])animate(node,kind);
+  assert.equal(calls.length,4);
+});
+test('o guia acompanha ações reais nos dois caminhos de banco até a primeira onda',()=>{
+  for (const bank of ['kv','sql']){
+    const s=plantaoState({guideBank:bank});
+    const step=(interaction={})=>plantaoGuide(s,interaction).target;
+    assert.equal(step(),'[data-gather="cpu"]');
+    plantaoCollect(s,'cpu');
+    assert.equal(step(),'[data-gather="ram"]');
+    plantaoCollect(s,'ram');
+    assert.equal(step(),'#pg-craft');
+    plantaoCraft(s,'api');s.area='terrain';
+    assert.equal(step({tool:'api'}),'[data-cell="0"]');
+    plantaoInstall(s,'api',5);
+    assert.equal(plantaoGuide(s).stage,2);
+    for(const mat of ['cpu','ram','ssd'])plantaoCollect(s,mat);
+    assert.equal(step(),'[data-recipe="'+bank+'"]');
+    s.recipe=bank;plantaoCraft(s,bank);plantaoInstall(s,bank,8);
+    assert.equal(step(),'[data-tool="wire"]');
+    assert.equal(step({tool:'wire',source:null}),'[data-cell="4"]');
+    assert.equal(step({tool:'wire',source:4}),'[data-cell="5"]');
+    s.edges.push({from:4,to:5},{from:5,to:8});
+    assert.equal(step(),'#pg-run');
+    assert.equal(step({locked:true}),'#pg-end');
+    assert.ok(runPlantao(s,0).pass);
+    s.cleared=1;
+    assert.match(plantaoGuide(s).title,/concluída/);
+  }
+});
