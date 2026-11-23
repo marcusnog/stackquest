@@ -67,10 +67,10 @@ function warHazard(state){
   const cells=quake?[[2+band,1],[2+band,3],[3+band,4]]:[[6-band,1],[7-band,2],[7-band,3],[6-band,4]];
   return {kind:quake?'quake':'storm',name:quake?'Tremor':'Tempestade de poeira',cells:cells.filter(([x,y])=>warWalkable(x,y)),remaining:3-state.field.beat%3};
 }
-function warMusicAlert(state){
+function warMusicAlert(state,hazard=warHazard(state)){
   if(state.power==='dark'||state.power==='torch')return 'blackout';
   if(state.hull==='breached')return 'quake';
-  return warHazard(state)?.kind||null;
+  return hazard?.kind||null;
 }
 function warWeatherTurn(state){
   if(warHazard(state))state.field.beat=(state.field.beat+1)%9;

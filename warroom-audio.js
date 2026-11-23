@@ -57,24 +57,25 @@ function warMusicStep(ctx,bus,noise,score,step,time){
   }
 }
 // Follow the current bass harmony and the sector's eighth-note clock.
-function warTensionStep(ctx,bus,score,step,time,alert,mix){
+function warTensionStep(ctx,bus,score,step,time,alert,mix,remaining=null){
   const eighth=30/score.bpm,slot=step%8;
   const bassDegree=score.bass[Math.floor(step/8)%4];
   const bass=440*2**((score.root+score.scale[bassDegree]-81)/12);
+  const weight=remaining===3 ? .60 : remaining===2 ? .82 : 1;
   const note=(delay,ratio,length,level,type='triangle')=>
-    warTone(ctx,bus,time+delay*eighth,bass*ratio,length*eighth,type,level*mix);
+    warTone(ctx,bus,time+delay*eighth,bass*ratio,length*eighth,type,level*mix*weight);
   switch(alert){
     case 'blackout':
       if(slot%4===0){note(0,1,.9,.37);note(.54,1.06,.55,.23);}
       if(slot===2||slot===6)note(0,slot===2?4:4.24,1.8,.14,'sine');
       break;
     case 'quake':
-      note(0,slot%2===0?1:1.5,.8,slot%2===0 ? .34 : .20);
-      if(slot===2||slot===5||slot===7)note(.5,1.06,.45,.24);
+      if(remaining!==3||slot%2===0)note(0,slot%2===0?1:1.5,.8,slot%2===0 ? .34 : .20);
+      if(remaining===1||(remaining===null&&[2,5,7].includes(slot)))note(.5,1.06,.45,.24);
       break;
     case 'storm':
-      note(0,[2,2.12,3,2.83][slot%4],.8,.17,'sawtooth');
-      note(.5,slot%2?3:2.12,.45,.13);
+      if(remaining!==3||slot%2===0)note(0,[2,2.12,3,2.83][slot%4],.8,.17,'sawtooth');
+      if(remaining===1||remaining===null)note(.5,slot%2?3:2.12,.45,.13);
       break;
   }
 }
@@ -100,7 +101,7 @@ function warSoundtrack(preferences={}){
   const volume=(value,initial)=>Number.isFinite(value)?Math.min(100,Math.max(0,value)):initial;
   const levels={music:volume(preferences?.music,38),effects:volume(preferences?.effects,62)};
   let ctx,music,effects,noise,timer=0,stage=0,step=0,next=0,disposed=false;
-  let alert=null,arrangement=null,intensity=0;
+  let alert=null,arrangement=null,intensity=0,pulsesLeft=null;
   function schedule(){
     if(!ctx||ctx.state!=='running'||document.hidden||!levels.music||!warScores[stage])return;
     next=Math.max(next,ctx.currentTime+.008);
@@ -108,7 +109,7 @@ function warSoundtrack(preferences={}){
       warMusicStep(ctx,music,noise,warScores[stage],step,next);
       // Fade over musical steps, including the release after the incident is resolved.
       intensity=alert?Math.min(1,intensity+.5):Math.max(0,intensity-.25);
-      if(intensity>0)warTensionStep(ctx,music,warScores[stage],step,next,arrangement,intensity);
+      if(intensity>0)warTensionStep(ctx,music,warScores[stage],step,next,arrangement,intensity,pulsesLeft);
       next+=30/warScores[stage].bpm;step=(step+1)%64;
     }
   }
@@ -138,9 +139,16 @@ function warSoundtrack(preferences={}){
       levels[channel]=volume(value,levels[channel]);unlock();
       if(ctx){const bus=channel==='music'?music:effects;bus.gain.setTargetAtTime(levels[channel]/100*(channel==='music' ? .5 : .65),ctx.currentTime,.015);clock();}
     },
-    scene(index,incident=null){
+    scene(index,incident=null,remaining=null){
+      // Held movement can advance the forecast faster than the music scheduler.
+      // Put the warning accent on the music bus at the actual gameplay pulse.
+      if(index===stage&&incident===alert&&remaining!==null&&pulsesLeft!==null&&remaining<pulsesLeft&&
+          ctx?.state==='running'&&!disposed&&!document.hidden&&levels.music){
+        const pitch=warScores[stage].root+(incident==='storm'?12:0)+(remaining===1?7:2);
+        warTone(ctx,music,ctx.currentTime+.008,440*2**((pitch-69)/12),.11,'triangle',remaining===1 ? .29 : .19);
+      }
       alert=incident;
-      if(incident)arrangement=incident;
+      if(incident){arrangement=incident;pulsesLeft=remaining;}
       if(stage!==index){stage=index;step=0;intensity=0;next=ctx?ctx.currentTime+.12:0;clock();}
     },
     cue(name){if(ctx&&!disposed&&!document.hidden&&levels.effects)warCue(ctx,effects,noise,name);},
