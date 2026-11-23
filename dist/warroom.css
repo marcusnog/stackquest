@@ -80,6 +80,12 @@
 .wr-mixer input{width:90px;accent-color:#ecd092}.wr-mixer label span{font-variant-numeric:tabular-nums;min-width:3ch}
 .wr-drills{margin:0 0 14px;padding:8px 14px;background:#1f3740;border:1px solid #78816d;border-radius:8px;color:#f0e7ce}
 .wr-drills summary{cursor:pointer;padding:6px 0}.wr-drills nav{line-height:2}.wr-drills a{color:#ffdf9f;text-underline-offset:3px}.wr-finished{padding:24px}
+.wr-delivery{max-width:54rem;margin-inline:auto;padding:clamp(14px,3vw,30px)}
+.wr-delivery-progress{display:flex;flex-wrap:wrap;gap:8px 24px;padding-left:1.5rem;list-style:decimal inside}
+.wr-delivery-progress li[aria-current]{color:#ffdf9f;font-weight:bold;text-decoration:underline}
+.wr-delivery label{display:block;margin:1rem 0 .4rem;font-weight:bold}
+.wr-delivery textarea,.wr-delivery pre{box-sizing:border-box;width:100%;margin:0;padding:12px;border:1px solid #738c91;border-radius:5px;background:#102127;color:#e6f5ee;font:0.92rem/1.55 monospace;tab-size:2}
+.wr-delivery textarea{resize:vertical}.wr-delivery pre{overflow-x:auto}.wr-delivery .wr-output{margin-block:12px;white-space:pre-wrap;overflow-wrap:anywhere}.wr-delivery .wr-output:empty,.wr-delivery .wr-hints:empty{display:none}
 #wr-weather:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;background:#41382e;color:#ffdfa2;padding:10px 16px}#wr-forecast{flex:1 1 220px}
 .wr-game[data-hazard="dust"] #wr-board::after{content:'';position:absolute;pointer-events:none;inset:0;background:repeating-linear-gradient(-14deg,transparent 0 18px,#dbb17c24 19px,transparent 21px 44px);background-size:210px 130px}
 .wr-game[data-hazard="quake"] .wr-mapbar{border-bottom-color:#ffb168}

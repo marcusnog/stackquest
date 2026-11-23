@@ -13,11 +13,39 @@ function fixture() {
       ));
     }
   });
-  for (const file of ['lab-engine.js','lab-guides.js']) {
+  for (const file of ['lab-engine.js','lab-guides.js','warroom-delivery.js']) {
     vm.runInContext(readFileSync(join(__dirname,'dist',file),'utf8'),context);
   }
-  return vm.runInContext('({newLab,labCommand,checkLab,labGuides,starterApp})',context);
+  return vm.runInContext('({newLab,labCommand,checkLab,labGuides,starterApp,warDeliveryLab,warDeliveryCommand,warRunWorkflow,warSmoke,warDeliveryFile})',context);
 }
+
+test('A doca verifica o código remoto e exige um novo deploy após o teste local',async()=>{
+  const {warDeliveryFile,warDeliveryLab,warDeliveryCommand,warSmoke}=fixture();
+  const lab=warDeliveryLab(warDeliveryFile);
+  assert.match((await warDeliveryCommand(lab,'npm test')).text,/FAIL.*\/ready/);
+  lab.files['app.js']=warDeliveryFile.replace('  //','  if(request.path==="/ready")return {status:200,body:"pronto"};\n  //');
+  assert.match((await warDeliveryCommand(lab,'npm test')).text,/5\/5/);
+  await assert.rejects(warDeliveryCommand(lab,warSmoke),/404/);
+  await warDeliveryCommand(lab,'deploy web-01');
+  assert.equal((await warDeliveryCommand(lab,warSmoke)).verified,true);
+});
+
+test('O workflow inicia limpo, bloqueia falhas e exige verificação da última release',async()=>{
+  const {warDeliveryFile,warRunWorkflow,warSmoke}=fixture();
+  const source=warDeliveryFile.replace('  //','  if(request.path==="/ready")return {status:200,body:"pronto"};\n  //');
+  const steps=(...cmds)=>cmds.map(cmd=>'      - run: '+cmd).join('\n');
+  const [test,publish]=['npm test','deploy web-01'];
+  const log=[],run=(code,yaml)=>warRunWorkflow(code,yaml,msg=>log.push(msg));
+  await assert.rejects(run(source,'- run: npm test'),/alinhe/);
+  await assert.rejects(run(source,steps(publish)),/bloqueado/);
+  log.length=0;
+  await assert.rejects(run(warDeliveryFile,steps(test,publish,warSmoke)),/Testes falharam/);
+  assert.ok(!log.includes('$ '+publish));
+  await assert.rejects(run(source,steps(test,publish)),/Falta verificar/);
+  await run(source,steps(test,publish,warSmoke));
+  await assert.rejects(run(source,steps(warSmoke)),/404/);
+  await assert.rejects(run(source,steps(test,publish,warSmoke,publish)),/Falta verificar/);
+});
 
 for (const id of ['vps','deploy','cloud','k8s']) {
   test('Roteiro e avaliação de '+id, async () => {
