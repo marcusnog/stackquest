@@ -16,6 +16,12 @@ function warroomPage(){
   const labels={on:'Rede elétrica ativa',dark:'Sem energia',torch:'Sem energia · lanterna ligada',restored:'Energia restabelecida'};
   const persist=()=>save(lesson,{warroom:{...state}});
   let order=[],lastMove=0;
+  let facing='s',stride=0,idleTimer=0;
+  function pose(frame){
+    const row={s:0,w:1,d:2,a:2}[facing];
+    el('pose').setAttribute('viewBox',[frame*24,row*28,24,28].join(' '));
+    el('facing').setAttribute('transform',facing==='a'?'scale(-1 1)':'scale(1 1)');
+  }
   function drawMap(){
     const target=warTarget(state),dark=['dark','torch'].includes(state.power);
     const [px,py]=warPoint([state.x,state.y]),player=el('player');
@@ -26,7 +32,7 @@ function warroomPage(){
     mask.setAttribute('opacity',dark?(state.power==='torch'?1:.93):0);
     svg.classList.toggle('wr-offline',dark);
     const beacon=state.power==='dark'?warAt(warTorch,'<circle r="11" fill="#f2cd84" opacity=".25"/>'+warItemArt('torch')):'';
-    el('beacon').innerHTML=beacon+(state.power==='dark'?warAt([state.x,state.y],'<ellipse cy="2" rx="8" ry="3" stroke="#a2d3c4" fill="none"/>'):'');
+    el('beacon').innerHTML=beacon+(state.power==='dark'?'<use href="#wr-player" opacity=".32"/>':'');
     const visible=target&&(target.kind!=='breaker'||Math.abs(state.x-warBreaker[0])+Math.abs(state.y-warBreaker[1])<=2);
     el('drop').innerHTML=visible?warAt(target.pos,'<ellipse class="wr-halo" cy="3" rx="19" ry="8" fill="none" stroke="#ffe18b" stroke-width="2" stroke-dasharray="5 3"/>'+
       (target.kind==='item'?warItemArt(state.stage):'')+'<path d="m-5-37 5 6 5-6z" fill="#ffe18b" stroke="#594b35"/>'):'';
@@ -55,10 +61,15 @@ function warroomPage(){
   }
   function move(key){
     if(state.stage===3)return;
+    clearTimeout(idleTimer);facing=key;
     if(warMove(state,key)){
       persist();drawMap();el('status').textContent='';
-      plantaoAnimate(el('player').querySelector('.wr-body'),'area');
-    }else el('status').textContent='Passagem bloqueada. Contorne a bancada ou a parede.';
+      stride=stride===1?2:1;
+      if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)pose(0);
+      else{pose(stride);idleTimer=setTimeout(()=>pose(0),125);}
+    }else{
+      pose(0);el('status').textContent='Passagem bloqueada. Contorne a bancada ou a parede.';
+    }
   }
   function sequence(){
     el('input').innerHTML='<ol class="wr-sequence">'+order.map(i=>'<li>'+warChapters[2].steps[i]+'</li>').join('')+'</ol>'+
@@ -102,7 +113,7 @@ function warroomPage(){
   el('close').onclick=()=>dialog.close();dialog.onclose=()=>board.focus({preventScroll:true});
   pad.onclick=e=>{const b=e.target.closest('[data-move]');if(b){move(b.dataset.move);board.focus({preventScroll:true});}};
   el('use').onclick=()=>{board.focus({preventScroll:true});use();};
-  el('replay').onclick=()=>{Object.assign(state,warState());persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
+  el('replay').onclick=()=>{Object.assign(state,warState());facing='s';stride=0;pose(0);persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
   function keyboard(e){
     if(dialog.open||state.stage===3||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
     const key=({ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d'})[e.key]||e.key.toLowerCase();
@@ -114,6 +125,6 @@ function warroomPage(){
     }
   }
   document.addEventListener('keydown',keyboard);
-  disposeWarroom=()=>document.removeEventListener('keydown',keyboard);
+  disposeWarroom=()=>{document.removeEventListener('keydown',keyboard);clearTimeout(idleTimer);};
   draw();
 }
