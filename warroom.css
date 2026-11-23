@@ -75,6 +75,9 @@
 .wr-mapbar h2{font-family:Georgia,serif;color:#f6dfa7}
 .wr-game #wr-board{isolation:isolate;position:relative;background:#142932;overflow:hidden}
 .wr-map{position:relative}
+.wr-mixer>div{display:flex;align-items:center;flex-wrap:wrap;gap:6px 22px;padding:4px 0}
+.wr-mixer label{display:flex;align-items:center;gap:8px;min-height:44px}
+.wr-mixer input{width:90px;accent-color:#ecd092}.wr-mixer label span{font-variant-numeric:tabular-nums;min-width:3ch}
 .wr-drills{margin:0 0 14px;padding:8px 14px;background:#1f3740;border:1px solid #78816d;border-radius:8px;color:#f0e7ce}
 .wr-drills summary{cursor:pointer;padding:6px 0}.wr-drills nav{line-height:2}.wr-drills a{color:#ffdf9f;text-underline-offset:3px}.wr-finished{padding:24px}
 #wr-weather:not([hidden]){display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;background:#41382e;color:#ffdfa2;padding:10px 16px}#wr-forecast{flex:1 1 220px}
