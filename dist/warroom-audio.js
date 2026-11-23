@@ -56,6 +56,28 @@ function warMusicStep(ctx,bus,noise,score,step,time){
     warTone(ctx,bus,time,score.beat==='deep'?83:640,.11,'sine',.09,score.beat==='deep'?42:410);
   }
 }
+// Follow the current bass harmony and the sector's eighth-note clock.
+function warTensionStep(ctx,bus,score,step,time,alert,mix){
+  const eighth=30/score.bpm,slot=step%8;
+  const bassDegree=score.bass[Math.floor(step/8)%4];
+  const bass=440*2**((score.root+score.scale[bassDegree]-81)/12);
+  const note=(delay,ratio,length,level,type='triangle')=>
+    warTone(ctx,bus,time+delay*eighth,bass*ratio,length*eighth,type,level*mix);
+  switch(alert){
+    case 'blackout':
+      if(slot%4===0){note(0,1,.9,.37);note(.54,1.06,.55,.23);}
+      if(slot===2||slot===6)note(0,slot===2?4:4.24,1.8,.14,'sine');
+      break;
+    case 'quake':
+      note(0,slot%2===0?1:1.5,.8,slot%2===0 ? .34 : .20);
+      if(slot===2||slot===5||slot===7)note(.5,1.06,.45,.24);
+      break;
+    case 'storm':
+      note(0,[2,2.12,3,2.83][slot%4],.8,.17,'sawtooth');
+      note(.5,slot%2?3:2.12,.45,.13);
+      break;
+  }
+}
 function warCue(ctx,bus,noise,cue){
   const t=ctx.currentTime+.008;
   const tone=(hz,len,type,level,end=hz,delay=0)=>warTone(ctx,bus,t+delay,hz,len,type,level,end);
@@ -78,11 +100,15 @@ function warSoundtrack(preferences={}){
   const volume=(value,initial)=>Number.isFinite(value)?Math.min(100,Math.max(0,value)):initial;
   const levels={music:volume(preferences?.music,38),effects:volume(preferences?.effects,62)};
   let ctx,music,effects,noise,timer=0,stage=0,step=0,next=0,disposed=false;
+  let alert=null,arrangement=null,intensity=0;
   function schedule(){
     if(!ctx||ctx.state!=='running'||document.hidden||!levels.music||!warScores[stage])return;
     next=Math.max(next,ctx.currentTime+.008);
     while(next<ctx.currentTime+.18){
       warMusicStep(ctx,music,noise,warScores[stage],step,next);
+      // Fade over musical steps, including the release after the incident is resolved.
+      intensity=alert?Math.min(1,intensity+.5):Math.max(0,intensity-.25);
+      if(intensity>0)warTensionStep(ctx,music,warScores[stage],step,next,arrangement,intensity);
       next+=30/warScores[stage].bpm;step=(step+1)%64;
     }
   }
@@ -112,7 +138,11 @@ function warSoundtrack(preferences={}){
       levels[channel]=volume(value,levels[channel]);unlock();
       if(ctx){const bus=channel==='music'?music:effects;bus.gain.setTargetAtTime(levels[channel]/100*(channel==='music' ? .5 : .65),ctx.currentTime,.015);clock();}
     },
-    scene(index){if(stage!==index){stage=index;step=0;next=ctx?ctx.currentTime+.12:0;clock();}},
+    scene(index,incident=null){
+      alert=incident;
+      if(incident)arrangement=incident;
+      if(stage!==index){stage=index;step=0;intensity=0;next=ctx?ctx.currentTime+.12:0;clock();}
+    },
     cue(name){if(ctx&&!disposed&&!document.hidden&&levels.effects)warCue(ctx,effects,noise,name);},
     visibility(){
       if(!ctx||disposed)return;

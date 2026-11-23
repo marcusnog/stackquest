@@ -65,7 +65,12 @@ function warHazard(state){
   if(state.wave!==1||state.relayReady||![3,5].includes(state.stage))return null;
   const quake=state.stage===3,band=(Math.floor(state.field.beat/3)+state.offset)%3;
   const cells=quake?[[2+band,1],[2+band,3],[3+band,4]]:[[6-band,1],[7-band,2],[7-band,3],[6-band,4]];
-  return {name:quake?'Tremor':'Tempestade de poeira',cells:cells.filter(([x,y])=>warWalkable(x,y)),remaining:3-state.field.beat%3};
+  return {kind:quake?'quake':'storm',name:quake?'Tremor':'Tempestade de poeira',cells:cells.filter(([x,y])=>warWalkable(x,y)),remaining:3-state.field.beat%3};
+}
+function warMusicAlert(state){
+  if(state.power==='dark'||state.power==='torch')return 'blackout';
+  if(state.hull==='breached')return 'quake';
+  return warHazard(state)?.kind||null;
 }
 function warWeatherTurn(state){
   if(warHazard(state))state.field.beat=(state.field.beat+1)%9;

@@ -159,10 +159,15 @@ function warroomPage(drill){
     el('use').disabled=!near;weather();
     drawTutorial();
   }
+  function syncMusic(){
+    const alert=warMusicAlert(state),score=warScores[state.stage];
+    const label={blackout:'apagão',quake:'tremor',storm:'tempestade'}[alert];
+    sound.scene(state.stage,alert);
+    el('track').textContent=score?'Trilha · '+score.name+(label?' · '+label:''):'Plantão encerrado';
+  }
   function draw(){
     const ch=warChapters[state.stage],target=warTarget(state);
-    sound.scene(state.stage);
-    el('track').textContent=warScores[state.stage]?'Trilha · '+warScores[state.stage].name:'Plantão encerrado';
+    syncMusic();
     const sector=Math.min(state.stage,warScenes.length-1);
     if(root.dataset.sector!==String(sector)){
       root.dataset.sector=String(sector);
@@ -286,8 +291,10 @@ function warroomPage(drill){
     if(result.done){
       dialog.close();
       if(practice){
-        unbindGame();sound.scene(-1);
+        unbindGame();syncMusic();
+        const mixer=root.querySelector('.wr-mixer');
         root.querySelector('.pg-content').innerHTML='<section class="wr-drills wr-finished"><small>TREINO CONCLUÍDO</small><h1 tabindex="-1">'+warDrillNames[state.stage-3]+'</h1><p>'+result.text+'</p><button type="button">Repetir treino</button><nav>'+warDrillLinks+' · <a href="#jogo/war-room">Voltar à campanha</a></nav></section>';
+        root.querySelector('.wr-finished').append(mixer);
         root.querySelector('.wr-finished button').onclick=()=>{disposeWarroom();disposeWarroom=null;warroomPage(drill);};
         root.querySelector('h1').focus();return;
       }
