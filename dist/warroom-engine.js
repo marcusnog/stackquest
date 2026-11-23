@@ -83,14 +83,33 @@ const warRecipes=[
   {id:'quake',name:'Âncora magnética',material:'titanio',layers:4,use:'Permite entrar em uma casa atingida por um tremor. Uso único.'},
   {id:'storm',name:'Escudo de rajada',material:'ceramica',layers:3,use:'Permite entrar em uma casa atingida pela tempestade. Uso único.'}
 ];
+const warMaterials={
+  cobre:{name:'Cobre',pos:[2,4]},titanio:{name:'Titânio',pos:[5,3]},ceramica:{name:'Cerâmica',pos:[8,4]}
+};
+function warMaterialHere(state){
+  if(!warChapters[state.stage])return;
+  return Object.keys(warMaterials).find(key=>{
+    const [x,y]=warMaterials[key].pos;
+    return x===state.x&&y===state.y;
+  });
+}
+function warGather(state){
+  const key=warMaterialHere(state);
+  if(!key||state.materials[key]>=Number.MAX_SAFE_INTEGER)return;
+  state.materials[key]++;
+  return key;
+}
 function warPrint(state,code){
   const args=/^imprimir\s*\(\s*(["'])([a-z]+)\1\s*,\s*([1-9]\d*)\s*\)\s*;?$/.exec(code.trim());
   if(!args)return {ok:false,text:'Use imprimir("material", camadas). Coloque o material entre aspas e use um número inteiro positivo.'};
   const item=warRecipes.find(r=>r.material===args[2]&&r.layers===Number(args[3]));
   if(!item)return {ok:false,text:'Essa combinação não tem molde. Confira o material e o número de camadas no caderno.'};
   if(state.printed.includes(item.id))return {ok:false,text:item.name+' já está na mochila.'};
+  const material=warMaterials[item.material],balance=state.materials[item.material];
+  if(balance<item.layers)return {ok:false,text:material.name+' insuficiente. Você tem '+balance+' de '+item.layers+'. Recolha mais em '+warCoord(material.pos)+'.'};
+  state.materials[item.material]-=item.layers;
   state.printed.push(item.id);
-  return {ok:true,text:item.name+' na mochila. '+item.use};
+  return {ok:true,text:item.name+' na mochila. A impressão consumiu '+item.layers+' unidades de '+material.name.toLowerCase()+'. '+item.use};
 }
 function warState(raw={}){
   const stage=Number.isInteger(raw?.stage)&&raw.stage>=0&&raw.stage<=warChapters.length?raw.stage:0;
@@ -99,6 +118,10 @@ function warState(raw={}){
   const power=stage===0?'on':stage>1?'restored':['dark','torch','restored'].includes(raw.power)?raw.power:'dark';
   const position=warWalkable(raw?.x,raw?.y)?[raw.x,raw.y]:[0,4];
   return {x:position[0],y:position[1],stage,power,facing:Object.hasOwn(warDirections,raw?.facing)?raw.facing:'s',
+    materials:Object.fromEntries(Object.keys(warMaterials).map(key=>{
+      const value=raw?.materials?.[key];
+      return [key,Number.isSafeInteger(value)&&value>=0?value:0];
+    })),
     printed:warRecipes.filter(r=>Array.isArray(raw?.printed)&&raw.printed.includes(r.id)).map(r=>r.id),
     hull:stage===2&&raw?.hull==='breached'?'breached':stage>=2&&raw?.hull==='sealed'?'sealed':'intact',
     tagRead:(power==='torch'||power==='restored')&&raw?.tagRead===true,

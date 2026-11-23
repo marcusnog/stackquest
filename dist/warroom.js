@@ -40,10 +40,11 @@ function warroomPage(drill){
   <aside id="wr-coach" hidden aria-label="Orientação do tutorial"><div role="status" aria-atomic="true"><small id="wr-coach-step"></small><p id="wr-coach-tip"></p></div><button id="wr-skip" type="button">Pular tutorial</button></aside>
   <div class="wr-controls"><div class="wr-equip"><span id="wr-equip-art" aria-hidden="true"></span><div><small>EM MÃOS</small><strong id="wr-equipped"></strong></div></div>
   <div class="wr-pad" role="group" aria-label="Movimento"><button data-move="w" aria-label="Andar para cima">↑</button><button data-move="a" aria-label="Andar para a esquerda">←</button><button data-move="s" aria-label="Andar para baixo">↓</button><button data-move="d" aria-label="Andar para a direita">→</button></div><button id="wr-use" class="pg-primary"><kbd>Espaço</kbd><span id="wr-verb"></span></button></div>
-  <p id="wr-keys">WASD ou setas para andar e mirar. Espaço para interagir. N abre o notebook.</p><p class="wr-status" role="status" id="wr-status"></p></section>
+  <button id="wr-gather" type="button" aria-keyshortcuts="E" hidden></button>
+  <p id="wr-keys">WASD ou setas para andar e mirar. Espaço para interagir. Na casa de um material, pressione E ou toque em Recolher. N abre o notebook.</p><p class="wr-status" role="status" id="wr-status"></p></section>
   <aside class="pg-side"><section class="pg-round wr-card"><div class="wr-card-head"><small id="wr-card-no"></small><span aria-hidden="true">✦</span></div><h2 id="wr-title"></h2><p id="wr-radio"></p><small id="wr-time"></small></section><section class="pg-round"><h2>Mochila de Lia</h2><button id="wr-laptop" aria-haspopup="dialog" aria-keyshortcuts="N">Abrir notebook (N)</button><ul id="wr-bag"></ul><p id="wr-distance" hidden></p></section><section class="pg-round"><h2>Diário do plantão</h2><ol id="wr-log"></ol><button id="wr-replay" hidden>Jogar novamente</button></section></aside></div>
-  <dialog id="wr-notebook" aria-labelledby="wr-notebook-title"><small>NOTEBOOK DE LIA</small><h2 id="wr-notebook-title">Impressora de campo</h2><p>Digite uma receita. A impressora escolhe o molde pela combinação do material com o número de camadas.</p>
-  <details><summary>Caderno de receitas</summary><ul>${warRecipes.map(r=>'<li><strong>'+r.name+'</strong> · <code>'+r.material+'</code> × '+r.layers+' camadas<br>'+r.use+'</li>').join('')}</ul></details>
+  <dialog id="wr-notebook" aria-labelledby="wr-notebook-title"><small>NOTEBOOK DE LIA</small><h2 id="wr-notebook-title">Impressora de campo</h2><p>Recolha os materiais no convés e digite a receita. Cada camada consome uma unidade da mochila.</p>
+  <details><summary>Caderno de receitas</summary><ul>${warRecipes.map(r=>'<li><strong>'+r.name+'</strong> · <code>'+r.material+'</code> × '+r.layers+' camadas<br>'+r.use+'<br><span id="wr-stock-'+r.material+'"></span></li>').join('')}</ul></details>
   <form id="wr-print"><label for="wr-code">Código da impressora</label><input id="wr-code" placeholder='imprimir("material", camadas)' spellcheck="false" autocomplete="off" autocapitalize="off" maxlength="120" required><p id="wr-print-result" role="status"></p><div class="wr-actions"><button class="pg-primary">Imprimir item</button><button type="button" id="wr-shut">Fechar notebook</button></div></form></dialog>
   <dialog id="wr-intro" aria-labelledby="wr-intro-title" aria-describedby="wr-intro-copy"><small>RAVI · CANAL DA PONTE</small><h2 id="wr-intro-title">Seu primeiro plantão</h2><p id="wr-intro-copy"></p><div class="wr-actions"><button id="wr-start" type="button" autofocus></button><button id="wr-dismiss" type="button">Pular tutorial</button></div></dialog>
   <dialog id="wr-dialog" aria-labelledby="wr-question"><form id="wr-puzzle"><small id="wr-terminal"></small><h2 id="wr-question"></h2><p id="wr-evidence"></p><p id="wr-decision-tip" hidden><strong>Tutorial · 4 de 4</strong> Divida os erros pelo total de pedidos de cada revisão. Selecione sua decisão e clique em Aplicar decisão.</p><div id="wr-input"></div><p role="status" id="wr-feedback"></p><div class="wr-actions"><button type="submit" class="pg-primary">Aplicar decisão</button><button id="wr-close" type="button">Voltar à sala</button></div></form></dialog></div></div>`;
@@ -63,6 +64,13 @@ function warroomPage(drill){
     controls.stop();el('print-result').textContent='';notebook.showModal();el('code').focus();sound.cue('open');
   }
   el('laptop').onclick=openNotebook;
+  function gather(){
+    controls.stop();
+    const key=warGather(state);if(!key)return;
+    persist();draw();act(3,280);sound.cue('pickup');plantaoAnimate(el('bag'),'collect');
+    el('status').textContent=warMaterials[key].name+' +1 · '+state.materials[key]+' na mochila.';
+  }
+  el('gather').onclick=gather;
   el('shut').onclick=()=>notebook.close();
   el('print').onsubmit=e=>{
     e.preventDefault();
@@ -169,6 +177,9 @@ function warroomPage(drill){
     }
     el('drop').style.opacity=visible?'1':'0';
     const near=warReach(state,target);
+    const material=warMaterialHere(state);
+    el('gather').hidden=!material;
+    if(material)el('gather').textContent='Recolher '+warMaterials[material].name.toLowerCase()+' (E)';
     el('position').textContent='Lia · '+warCoord([state.x,state.y]);
     const tracking=target&&state.printed.includes('tracker');
     el('distance').hidden=!tracking;
@@ -176,7 +187,7 @@ function warroomPage(drill){
       const distance=Math.abs(state.x-target.pos[0])+Math.abs(state.y-target.pos[1]);
       el('distance').textContent='Rastreador · '+target.name+' · '+distance+(distance===1?' casa':' casas')+' de distância na grade.';
     }
-    board.setAttribute('aria-label','Mapa da war room. '+el('position').textContent+(near?'. Ao alcance: '+target.name:'.'));
+    board.setAttribute('aria-label','Mapa da war room. '+el('position').textContent+(near?'. Ao alcance: '+target.name:'.')+(material?' '+el('gather').textContent: ''));
     el('verb').textContent=near?({item:'Coletar item',torch:'Pegar lanterna',tag:'Ler etiqueta',breaker:'Examinar quadro',bulkhead:'Selar antepara',puzzle:'Abrir terminal',relay:warChapters[state.stage]?.relayAction}[target.kind]):(target?'Fora de alcance':'Turno encerrado');
     if(target?.kind==='probe'&&near)el('verb').textContent='Escutar '+target.name;
     el('use').disabled=!near;weather();
@@ -250,7 +261,11 @@ function warroomPage(drill){
     if(['torch','restored'].includes(state.power))held.push('Lanterna de emergência');
     if(state.tagRead)held.push('Etiqueta · Monitores no ramal B');
     el('bag').innerHTML=held.map((s,i)=>'<li><svg viewBox="-17 -16 36 32" aria-hidden="true">'+warItemArt(s==='Lanterna de emergência'?'torch':i)+'</svg>'+s+'</li>').join('')+
-      warRecipes.filter(r=>state.printed.includes(r.id)).map(r=>'<li>▣ '+r.name+'</li>').join('')||'<li>Mochila vazia</li>';
+      warRecipes.filter(r=>state.printed.includes(r.id)).map(r=>'<li>▣ '+r.name+'</li>').join('')+
+      Object.entries(warMaterials).map(([key,m])=>'<li><svg viewBox="-17 -16 36 32" aria-hidden="true">'+warItemArt(key)+'</svg>'+m.name+' × '+state.materials[key]+' · coletar em '+warCoord(m.pos)+'</li>').join('');
+    for(const r of warRecipes){
+      el('stock-'+r.material).textContent='Na mochila: '+state.materials[r.material]+' · Coleta em '+warCoord(warMaterials[r.material].pos)+'.';
+    }
     el('log').innerHTML=(state.stage?warChapters.slice(0,state.stage).map(c=>'<li>'+c.result+'</li>').join(''):'<li>02:13 · Lia assumiu a investigação.</li>')+
       (state.power==='restored'?'<li>Circuito dos terminais rearmado.</li>':'')+(state.hull==='sealed'?'<li>Vazamento isolado. Passagem de estibordo liberada.</li>':'');
     el('replay').hidden=!!ch;
@@ -440,6 +455,8 @@ function warroomPage(drill){
     const key=({ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d'})[e.key]||e.key.toLowerCase();
     if(Object.hasOwn(warDirections,key)){
       e.preventDefault();if(!e.repeat)controls.press(e.code||e.key,key);
+    }else if(key==='e'&&warMaterialHere(state)){
+      e.preventDefault();if(!e.repeat)gather();
     }else if(key==='n'){
       e.preventDefault();if(!e.repeat)openNotebook();
     }else if(key==='q'&&warHazard(state)){

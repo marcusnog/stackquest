@@ -155,11 +155,39 @@ test('tremor e tempestade anunciam, barram a entrada no impacto e deixam uma sa�
     assert.equal(warTarget(old).kind,'puzzle');
   }
 });
+test('coleta exige pisar no depósito e a impressora debita apenas a receita aceita',()=>{
+  const {warGather,warPrint,warMaterials,warWalkable,warRecipes}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warGather,warPrint,warMaterials,warWalkable,warRecipes})');
+  const old=warState({printed:['tracker']});
+  assert.deepEqual({...old.materials},{cobre:0,titanio:0,ceramica:0});
+  assert.ok(old.printed.includes('tracker'));
+  assert.deepEqual({...warState({materials:{cobre:-1,titanio:'4',ceramica:1.5}}).materials},{cobre:0,titanio:0,ceramica:0});
+  let s=warState();
+  assert.equal(warGather(s),undefined);
+  for(const r of warRecipes){
+    const cmd='imprimir("'+r.material+'", '+r.layers+')';
+    [s.x,s.y]=warMaterials[r.material].pos;
+    assert.ok(warWalkable(s.x,s.y));
+    for(let i=0;i<r.layers-1;i++)assert.equal(warGather(s),r.material);
+    s=warState(JSON.parse(JSON.stringify(s)));
+    assert.equal(warPrint(s,cmd).ok,false);
+    assert.equal(s.materials[r.material],r.layers-1);
+    assert.ok(!s.printed.includes(r.id));
+    warGather(s);warGather(s);
+    const before={...s.materials};
+    assert.equal(warPrint(s,'imprimir("erro", 1)').ok,false);
+    assert.deepEqual({...s.materials},before);
+    assert.equal(warPrint(s,cmd).ok,true);
+    assert.deepEqual({...s.materials},{...before,[r.material]:1});
+    assert.equal(warPrint(s,cmd).ok,false);
+    assert.equal(s.materials[r.material],1);
+  }
+  assert.equal(warGather(warState({...s,stage:6})),undefined);
+});
 test('receitas da impressora criam equipamentos distintos e somente a proteção correta se gasta no impacto',()=>{
   const print=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;warPrint');
   assert.equal(warState().printed.length,0);
   for(const [stage,gear,other] of [[3,'quake','storm'],[5,'storm','quake']]){
-    const s=warState({stage,wave:1,x:stage===3?1:5,y:1,field:{beat:2},printed:['inválido']});
+    const s=warState({stage,wave:1,x:stage===3?1:5,y:1,field:{beat:2},printed:['inválido'],materials:{cobre:2,titanio:8,ceramica:6}});
     for(const code of ['imprimir(cobre,2)','imprimir("cobre",3)','imprimir("cobre",2); imprimir("cobre",2)']){
       assert.equal(print(s,code).ok,false);
       assert.equal(s.printed.length,0);
