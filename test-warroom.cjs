@@ -59,7 +59,8 @@ test('o rádio conduz Lia de cada casa livre até a coleta e o terminal',()=>{
   for(const stage of [1,2,3])assert.equal(guide.warTutorialStep(warState({stage})),null);
 });
 test('o guia do rastreador conduz à casa exata e acompanha estoque, notebook, receita e impressão',()=>{
-  const {warTrackerStep,warWalkable,warGather,warPrint}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warTrackerStep,warWalkable,warGather,warPrint})');
+  const {warEquipmentStep,warRecipes,warWalkable,warGather,warPrint}=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warEquipmentStep,warRecipes,warWalkable,warGather,warPrint})');
+  const warTrackerStep=(s,open,code)=>warEquipmentStep(s,open,code,warRecipes[0]);
   for(let y=0;y<5;y++)for(let x=0;x<9;x++){
     if(!warWalkable(x,y))continue;
     const s=warState({x,y}),visited=new Set();
@@ -79,6 +80,35 @@ test('o guia do rastreador conduz à casa exata e acompanha estoque, notebook, r
   const code="imprimir( 'cobre', 2 );";assert.equal(key(true,code),'print-item');
   assert.equal(key(),'laptop');assert.equal(s.materials.cobre,2);
   assert.equal(warPrint(s,code).ok,true);assert.equal(key(true,code),undefined);
+});
+test('as duas lições de proteção só terminam ao entrar na casa atingida no pulso de impacto',()=>{
+  const src=readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8');
+  const {warGuideRecipe,warEquipmentStep,warGather,warPrint,warWeatherTurn,warHazard}=vm.runInNewContext(src+'\n;({warGuideRecipe,warEquipmentStep,warGather,warPrint,warWeatherTurn,warHazard})');
+  for(const stage of [3,5])for(let beat=0;beat<9;beat++){
+    let s=warState({stage,wave:1,x:4,y:4,offset:beat%3,field:{beat}});
+    const recipe=warGuideRecipe(s,true),cmd='// produção no notebook\nimprimir("'+recipe.material+'", '+recipe.layers+')';
+    assert.equal(recipe.id,stage===3?'quake':'storm');
+    let open=false,code='',executed=false;
+    for(let i=0;i<80&&!s.absorbed.includes(recipe.id);i++){
+      const tip=warEquipmentStep(s,open,code,recipe);
+      assert.ok(tip);
+      if(tip.key==='gather'){assert.equal(warGather(s),recipe.material);continue;}
+      if(tip.key==='laptop'){open=true;continue;}
+      if(tip.key==='code'){code=cmd;continue;}
+      if(tip.key==='print-item'){
+        assert.equal(warPrint(s,cmd).ok,true);assert.equal(s.materials[recipe.material],0);
+        s=warState(JSON.parse(JSON.stringify(s)));assert.equal(warGuideRecipe(s,true).id,recipe.id);
+        executed=true;continue;
+      }
+      if(tip.key==='shut'){open=false;continue;}
+      if(tip.key==='wait'){warWeatherTurn(s);continue;}
+      const hazard=warHazard(s);
+      assert.ok(warMove(s,tip.key));
+      if(s.absorbed.length){assert.equal(hazard.remaining,1);assert.ok(hazard.cells.some(([x,y])=>x===s.x&&y===s.y));}
+    }
+    assert.ok(executed&&s.absorbed.includes(recipe.id));assert.ok(!s.printed.includes(recipe.id));
+    assert.equal(warGuideRecipe(warState(JSON.parse(JSON.stringify(s))),true),null);
+  }
 });
 test('Lia contorna as bancadas, resolve os três incidentes e retoma o apagão salvo',()=>{
   let s=warState();
