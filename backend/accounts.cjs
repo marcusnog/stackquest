@@ -4,7 +4,7 @@ const {promisify}=require('node:util');
 const derive=promisify(scrypt);
 const digest=s=>createHash('sha256').update(s).digest('hex');
 const expiry=7*24*3600*1000;
-const progressKey=/^stackquest\.(?:missao\.v1\.(?:[1-9]|1[01])-[1-3]|lab\.v1\.(?:vps|deploy|cloud|k8s)|db\.v1\.(?:checkout|sessoes|catalogo|relacoes|telemetria|analitica))$/;
+const progressKey=/^stackquest\.(?:preferencias\.v1\.aparencia|missao\.v1\.(?:[1-9]|1[01])-[1-3]|lab\.v1\.(?:vps|deploy|cloud|k8s)|db\.v1\.(?:checkout|sessoes|catalogo|relacoes|telemetria|analitica))$/;
 function failure(status,message){return Object.assign(new Error(message),{status});}
 async function json(req,max){
   if(req.headers['content-type']?.split(';')[0]!=='application/json')throw failure(415,'Envie JSON.');

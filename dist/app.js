@@ -135,6 +135,7 @@ function showLesson(l) {
   const record=records.get(l.id),done=complete(l);
   if (!record.started) save(l.id,{started:true});
   const advanced=l.m>=coreModules.length;
+  const designCase=archCases.find(c=>archLessons[c.id]===l.id);
   main.innerHTML='<div class="lesson-wrap">'+(advanced?'<a class="back" href="#avancado">Voltar à trilha avançada</a>':'<a class="back" href="#roadmap">Voltar ao roadmap</a>')+
     header('Módulo '+(l.m+1)+' / '+l.module.title,l.title,'Missão '+(l.l+1)+' de '+l.module.lessons.length+' · '+l.minutes+' min · '+xp+' XP')+
     '<article class="lessoncard"><h2>Aula</h2>'+l.paragraphs.map(p=>'<p>'+p+'</p>').join('')+'<div class="case"><b>Cenário</b>'+l.scenario+'</div></article>'+
@@ -146,6 +147,7 @@ function showLesson(l) {
     '<div class="lesson-actions"><button id="finish" class="act" type="button">'+icon(done?'check':'flag',16)+(done?'Missão concluída':'Concluir missão')+'</button>'+
     '<span class="meta" id="note-status" role="status"></span></div><div id="finish-status" role="status"></div></section>'+
     (l.m===2?'<section class="lessoncard"><h2>Pratique a escolha de banco</h2><a class="textlink" href="#lab/bancos">Testar modelos de dados no laboratório</a></section>':'')+
+    (designCase?'<section class="lessoncard"><h2>Desenhe a arquitetura</h2><a class="textlink" href="#lab/arquitetura/'+designCase.id+'">'+studioText(designCase.title)+'</a></section>':'')+
     '<section class="lessoncard"><h2>Leitura de apoio</h2>'+referenceLink(l)+'</section></div>';
   const note=document.getElementById('note'),quiz=document.getElementById('test'),button=document.getElementById('finish'),status=document.getElementById('finish-status');
   const experiment=document.getElementById('ai-experiment');
@@ -175,8 +177,13 @@ function showLesson(l) {
   });
 }
 function render() {
+  applyAppearance();
   if(typeof disposeLabStudio==='function'){disposeLabStudio();disposeLabStudio=null;}
   const route=location.hash.slice(1)||'roadmap';
+  if(route==='aparencia'){chrome('conta','Aparência');appearancePage();return;}
+  if(route==='lab/arquitetura'||route.startsWith('lab/arquitetura/')){
+    chrome('laboratorios','Simulador de arquitetura');architectureBoard(route.split('/')[2]);document.dispatchEvent(new Event('stackquest:render'));return;
+  }
   if(route==='avancado'){chrome('roadmap','Trilha avançada');advancedRoadmap();document.dispatchEvent(new Event('stackquest:render'));return;}
   if(route==='conta'||route==='cadastro'){chrome('conta',account.name?'Minha conta':'Conta');accountPage();return;}
   if(route==='lab/bancos'||route.startsWith('lab/bancos/')){

@@ -37,6 +37,13 @@ test('Cadastro, isolamento, retomada, conflito e saída',async t=>{
   assert.equal((await call('progress',at,first,'PUT')).data.version,1);
   const advanced={...first,key:'stackquest.missao.v1.11-3'};
   assert.equal((await call('progress',at,advanced,'PUT')).status,200);
+  const design={nodes:[{id:'n1',type:'api',x:32,y:85}],edges:[],provider:'azure',usage:{hours:100,rates:{storage:0.2}}};
+  const board={...first,key:'stackquest.missao.v1.3-1',value:JSON.stringify({note:'Reserva condicional',architecture:design})};
+  assert.equal((await call('progress',at,board,'PUT')).status,200);
+  const prefKey='stackquest.preferencias.v1.aparencia';
+  const appearance={key:prefKey,value:'{"theme":"dark","accent":"azul","text":"grande"}',version:0};
+  assert.equal((await call('progress',at,appearance,'PUT')).status,200);
+  assert.equal((await call('progress',at,{...appearance,key:prefKey+'-outra'},'PUT')).status,400);
   assert.equal((await call('progress',at,{...first,key:'stackquest.missao.v1.12-1'},'PUT')).status,400);
   assert.equal((await call('progress',at,first,'PUT')).data.version,1);
   assert.equal((await call('progress',at,{...first,value:'{}'},'PUT')).status,409);
@@ -47,5 +54,8 @@ test('Cadastro, isolamento, retomada, conflito e saída',async t=>{
   assert.equal((await call('me',null)).status,401);
   assert.equal((await call('auth/logout',at,undefined,'POST')).status,200);
   assert.equal((await call('me',at)).status,401);
-  assert.equal((await call('me',second.data.token)).data.records.length,2);
+  const records=(await call('me',second.data.token)).data.records;
+  assert.equal(records.length,4);
+  assert.equal(records.find(r=>r.key===prefKey).value,appearance.value);
+  assert.deepEqual(JSON.parse(records.find(r=>r.key===board.key).value).architecture,design);
 });

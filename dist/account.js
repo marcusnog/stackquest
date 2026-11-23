@@ -72,7 +72,7 @@ async function restoreAccount(){
 function accountPage(){
   if(account.name){
     main.innerHTML=header('Perfil','Minha conta',account.name+' · '+(countDone()*xp+labXP())+' XP')+
-      '<section class="lessoncard account-box"><h2>Progresso individual</h2><p>'+countDone()+' de '+lessons.length+' missões · '+labGuides.filter(g=>labState(g.id).earned).length+' de 4 laboratórios de infraestrutura · '+dbDone()+' de 6 decisões de banco.</p><p id="account-state" role="status"></p><div id="conflicts"></div><div class="lesson-actions"><button id="sync" class="act">Sincronizar progresso</button><button id="logout" class="textlink">Sair da conta</button></div></section>';
+      '<section class="lessoncard account-box"><h2>Progresso individual</h2><p>'+countDone()+' de '+lessons.length+' missões · '+labGuides.filter(g=>labState(g.id).earned).length+' de 4 laboratórios de infraestrutura · '+dbDone()+' de 6 decisões de banco.</p><p id="account-state" role="status"></p><div id="conflicts"></div><div class="lesson-actions"><a href="#aparencia" class="textlink">Personalizar aparência</a><button id="sync" class="act">Sincronizar progresso</button><button id="logout" class="textlink">Sair da conta</button></div></section>';
     const status=main.querySelector('#account-state');status.textContent=account.error||syncLabel();
     for(const [key,current] of account.conflicts){
       const panel=document.createElement('div');panel.className='feedback';
