@@ -1,44 +1,7 @@
 <!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Central de missões · StackQuest</title>
-  <link rel="icon" href="mark.svg"><link rel="stylesheet" href="previa.css">
-  <script src="blueprint.js" defer></script><script src="lab-runner.js" defer></script>
-  <script src="lab-engine.js?v=diagnostico1" defer></script><script src="warroom-delivery.js?v=diagnostico1" defer></script>
-  <script src="previa.js" defer></script>
-</head>
-<body class="preview">
-  <a class="skip" href="#conteudo">Pular para o conteúdo</a>
-  <header class="preview-bar"><a class="wordmark" href="#central"><img src="mark.svg" width="34" height="34" alt="">StackQuest</a><span>Protótipo navegável</span><a href="./#roadmap">Abrir plataforma</a></header>
-  <nav class="preview-nav" aria-label="Etapas do protótipo"><a href="#central">Central de missões</a><a href="#briefing">Briefing</a><a href="#diagnostico">Bancada de diagnóstico</a></nav>
-  <main id="conteudo" tabindex="-1">
-    <section id="screen-central">
-      <h1>Central de missões</h1>
-      <div class="feature"><div><h2>O sinal de prontidão</h2><p>A API da doca está no ar, mas a estação recusa a release. Descubra o que a sonda de prontidão recebeu.</p><a class="action" href="#briefing">Ver briefing da missão</a></div><figure><canvas id="blueprint" aria-hidden="true"></canvas><figcaption>Ambiente da missão <code>web-01:8080</code></figcaption></figure></div>
-      <h2 class="section-heading">Explorar a plataforma</h2>
-      <p class="directory-note">Estas áreas usam sua sessão do StackQuest e salvam o progresso normalmente.</p>
-      <div class="directory">
-        <section><h3>Estudar</h3><a href="./?previa=1#roadmap">Roadmap de System Design</a><a href="./?previa=1#avancado">IA e sistemas distribuídos</a><a href="./?previa=1#biblioteca">Biblioteca de missões</a></section>
-        <section><h3>Praticar</h3><a href="./?previa=1#laboratorios">Laboratórios e jogos</a><a href="./?previa=1#lab/arquitetura">Simulador de arquitetura e custos</a><a href="./?previa=1#lab/bancos">Escolha de banco de dados</a></section>
-        <section><h3>Acompanhar</h3><a href="./?previa=1#conquistas">Conquistas</a><a href="./?previa=1#ranking">Ranking global</a><a href="./?previa=1#comunidades">Comunidades · requer conta</a></section>
-        <section><h3>Personalizar</h3><a href="./?previa=1#conta">Minha conta</a><a href="./?previa=1#cadastro">Criar conta</a><a href="./?previa=1#aparencia">Aparência</a></section>
-      </div>
-    </section>
-    <section id="screen-briefing" hidden>
-      <h1>O sinal de prontidão</h1>
-      <p class="intro">Lia precisa liberar a doca. Os clientes ainda conseguem acessar a API, mas o verificador de deploy recebe uma resposta inesperada.</p>
-      <div class="split"><section><h2>Contrato da API</h2>
-        <table><thead><tr><th>Requisição</th><th>Status</th><th>Corpo esperado</th></tr></thead><tbody>
-          <tr><td>GET /health</td><td>200</td><td>ok</td></tr><tr><td>GET /ready</td><td>200</td><td>pronto</td></tr><tr><td>GET /readyz</td><td>404</td><td>livre</td></tr>
-        </tbody></table><p>A sonda consulta o caminho exato. Uma rota desconhecida deve continuar devolvendo 404.</p></section>
-        <aside class="procedure"><h2>Ordem de trabalho</h2><ol><li>Rode os testes e localize a falha.</li><li>Corrija o handler de <code>app.js</code>.</li><li>Valide a resposta antes de publicar.</li></ol><a class="action" href="#diagnostico">Abrir bancada</a></aside></div>
-    </section>
-    <section id="screen-diagnostico" hidden>
-      <h1>Bancada de diagnóstico</h1><p class="intro">Rode a suíte da doca, abra a falha no código e teste sua correção. As edições desta prévia duram até recarregar a página.</p>
-      <div class="bench"><section class="sample-editor"><h2><code>app.js</code></h2><label class="sr" for="sample-code">Código da API da doca</label><textarea id="sample-code" rows="14" spellcheck="false" autocapitalize="off"></textarea><p id="sample-hint" role="status"></p></section>
-        <section class="sample-terminal"><h2>Terminal da doca</h2><button class="action" id="sample-run" type="button">Executar npm test</button><div id="sample-output" role="log" aria-label="Resultados dos testes">Aguardando execução.</div></section></div>
-      <a class="mission-link" href="./?previa=1#jogo/war-room/entrega">Continuar no notebook de Lia para fazer o deploy</a>
-    </section>
-  </main>
-</body></html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Central de missões · StackQuest</title>
+<script>
+  const routes=['#central','#briefing','#diagnostico'];
+  location.replace('./'+(routes.includes(location.hash)?location.hash:'#central'));
+</script></head><body><a href="./#central">Abrir a central de missões</a></body></html>
