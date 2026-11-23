@@ -181,12 +181,14 @@ function render() {
   if(typeof disposeLabStudio==='function'){disposeLabStudio();disposeLabStudio=null;}
   if(typeof disposePlantao==='function'){disposePlantao();disposePlantao=null;}
   if(typeof disposeCorreio==='function'){disposeCorreio();disposeCorreio=null;}
+  if(typeof disposeWarroom==='function'){disposeWarroom();disposeWarroom=null;}
   const route=location.hash.slice(1)||'roadmap';
   if(route==='comunidades'||route.startsWith('comunidades/')){
     if(!account.name){location.replace('#conta');return;}
     chrome('comunidades','Comunidades');communityPage(route);return;
   }
   if(route==='jogo/plantao'){chrome('laboratorios','Plantão no Datacenter');plantaoPage();return;}
+  if(route==='jogo/war-room'){chrome('laboratorios','War Room · Virada de plantão');warroomPage();return;}
   if(route==='jogo/correio'){chrome('laboratorios','Correio de Jobs');correioPage();return;}
   if(route==='aparencia'){chrome('conta','Aparência');appearancePage();return;}
   if(route==='lab/arquitetura'||route.startsWith('lab/arquitetura/')){
