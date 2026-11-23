@@ -51,6 +51,25 @@ function warTagLit(state){
   return len<=143 && dx*Math.cos(rad)+dy*Math.sin(rad)>=len*Math.cos(Math.PI/5);
 }
 const warCoord=([x,y])=>'ABCDEFGHI'[x]+(y+1);
+const warProbes=[
+  {name:'Eco azul',pos:[1,1],lsn:418,time:'02:41:08'},
+  {name:'Eco âmbar',pos:[7,3],lsn:421,time:'02:41:02'}
+];
+function warFieldState(raw={}){
+  const between=(n,max)=>Number.isInteger(n)&&n>=0&&n<=max;
+  return {turns:Array.from({length:6},(_,i)=>between(raw?.turns?.[i],3)?raw.turns[i]:0),
+    scans:between(raw?.scans,3)?raw.scans:0,pulse:between(raw?.pulse,2)?raw.pulse:0,
+    dish:between(raw?.dish,4)?raw.dish:2,beat:between(raw?.beat,8)?raw.beat:0};
+}
+function warHazard(state){
+  if(state.wave!==1||state.relayReady||![3,5].includes(state.stage))return null;
+  const quake=state.stage===3,band=(Math.floor(state.field.beat/3)+state.offset)%3;
+  const cells=quake?[[2+band,1],[2+band,3],[3+band,4]]:[[6-band,1],[7-band,2],[7-band,3],[6-band,4]];
+  return {name:quake?'Tremor':'Tempestade de poeira',cells:cells.filter(([x,y])=>warWalkable(x,y)),remaining:3-state.field.beat%3};
+}
+function warWeatherTurn(state){
+  if(warHazard(state))state.field.beat=(state.field.beat+1)%9;
+}
 function warWalkable(x,y){
   return Number.isInteger(x)&&Number.isInteger(y)&&x>=0&&x<9&&y>=0&&y<5&&!warFurniture.some(([a,b])=>a===x&&b===y);
 }
@@ -63,7 +82,7 @@ function warState(raw={}){
   return {x:position[0],y:position[1],stage,power,facing:Object.hasOwn(warDirections,raw?.facing)?raw.facing:'s',
     hull:stage===2&&raw?.hull==='breached'?'breached':stage>=2&&raw?.hull==='sealed'?'sealed':'intact',
     tagRead:(power==='torch'||power==='restored')&&raw?.tagRead===true,
-    wave,offset:operational&&stage!==4&&[1,2].includes(raw.offset)?raw.offset:0,
+    wave,field:warFieldState(wave===1?raw.field:undefined),offset:operational&&stage!==4&&[1,2].includes(raw.offset)?raw.offset:0,
     relayReady:wave>0&&(wave===2||raw.relayReady===true),
     setting:operational&&Number.isInteger(raw.setting)&&raw.setting>=0&&raw.setting<=(stage===5?20:2)?raw.setting:null,
     collected:stage<warChapters.length&&power!=='dark'&&power!=='torch'&&(wave>0||raw?.collected===true)};
@@ -75,6 +94,11 @@ function warMove(state,key){
   const x=state.x+delta[0],y=state.y+delta[1];
   if(!warWalkable(x,y))return false;
   if(state.hull==='breached'&&warIce.some(([col,row])=>col===x&&row===y))return false;
+  const hazard=warHazard(state);
+  if(hazard){
+    warWeatherTurn(state);
+    if(hazard.remaining===1&&hazard.cells.some(([cx,cy])=>cx===x&&cy===y))return false;
+  }
   state.x=x;state.y=y;return true;
 }
 function warTarget(state){
@@ -84,7 +108,14 @@ function warTarget(state){
   if(state.power==='torch')return {kind:'breaker',name:'Disjuntor',pos:warBreaker};
   if(state.hull==='breached')return {kind:'bulkhead',name:'Comando da antepara',pos:warBulkhead};
   const chapter=warChapters[state.stage];
-  if(chapter.relay&&state.wave===1&&!state.relayReady)return {kind:'relay',name:chapter.relayName,pos:chapter.relay};
+  if(chapter.relay&&state.wave===1&&!state.relayReady){
+    if(state.stage===4&&state.field.scans!==3){
+      const pending=warProbes.filter((_,i)=>!(state.field.scans&(1<<i)));
+      const probe=pending.find(p=>warNear(state,p.pos))||pending[0];
+      return {kind:'probe',name:probe.name,pos:probe.pos,index:warProbes.indexOf(probe)};
+    }
+    return {kind:'relay',name:chapter.relayName,pos:chapter.relay};
+  }
   return state.collected?{kind:'puzzle',name:chapter.station,pos:chapter.desk}:{kind:'item',name:chapter.item,pos:chapter.pickup};
 }
 function warNear(state,pos){return Math.abs(state.x-pos[0])+Math.abs(state.y-pos[1])<=1;}
@@ -114,7 +145,7 @@ function warInteract(state){
   if(target.kind==='tag')state.tagRead=true;
   if(target.kind==='bulkhead')state.hull='sealed';
   if(target.kind==='item')state.collected=true;
-  if(target.kind==='relay')state.relayReady=true;
+  if(target.kind==='probe')state.field.scans|=1<<target.index;
   return target.kind;
 }
 function warRestore(state,choice){
@@ -177,9 +208,63 @@ function warTransmit(state,value){
     state.setting=null;
     state.wave++;
     if(state.wave===3){
-      state.stage++;state.collected=false;state.wave=0;state.relayReady=false;
+      state.stage++;state.collected=false;state.wave=0;state.relayReady=false;state.field=warFieldState();
       state.offset=state.stage===4?0:Math.floor(Math.random()*3);
     }
   }
   return reading;
+}
+
+// Ports are north, east, south, west. A packet advances only across matching ports.
+const warPorts=[[0,2],[0,1],[0,1],[0,1],[2,3],[0,2]];
+function warPipePorts(state,i){return warPorts[i].map(p=>(p+state.field.turns[i])%4);}
+function warTrace(state){
+  const path=[];
+  let i=0,entry=3;
+  while(!path.includes(i)){
+    const ports=warPipePorts(state,i);
+    if(!ports.includes(entry))break;
+    path.push(i);
+    const exit=ports.find(p=>p!==entry);
+    if(i===5&&exit===1)return {path,ok:true};
+    const x=i%3+[0,1,0,-1][exit],y=Math.floor(i/3)+[-1,0,1,0][exit];
+    if(x<0||x>2||y<0||y>1)break;
+    i=y*3+x;entry=(exit+2)%4;
+  }
+  return {path,ok:false};
+}
+function warBeacon(state){
+  const index=(state.offset+state.field.pulse)%3;
+  return {goal:[1,3,2][index],gust:[-1,1,-1][index]};
+}
+function warFieldAction(state,action,value){
+  const target=warTarget(state);
+  if(target?.kind!=='relay'||!warReach(state,target))return null;
+  const field=state.field;
+  let done=false,text='';
+  if(state.stage===3){
+    if(action==='turn'&&Number.isInteger(value)&&value>=0&&value<6){
+      field.turns[value]=(field.turns[value]+1)%4;
+      return {text:'Peça '+(value+1)+' girada.'};
+    }
+    if(action!=='test')return null;
+    const trace=warTrace(state);done=trace.ok;
+    text=done?'O pacote chegou ao cache. Rota restabelecida.':'Pacote interrompido após '+trace.path.length+' de 6 peças possíveis. A saída de cada peça deve encontrar uma entrada.';
+  }else if(state.stage===4){
+    if(action!=='sync'||![0,1].includes(value))return null;
+    done=warProbes[value].lsn>=421;
+    text=done?'O registro 421 chegou à baliza. Manifesto confirmado.':'O relógio azul está adiantado. Essa cópia só aplicou o registro 418 e perderia a última alteração.';
+  }else{
+    if(action==='steer'&&[-1,1].includes(value)){
+      field.dish=Math.max(0,Math.min(4,field.dish+value));return {text:'Antena no setor '+(field.dish+1)+'.'};
+    }
+    if(action!=='capture')return null;
+    const {goal,gust}=warBeacon(state);
+    field.dish=Math.max(0,Math.min(4,field.dish+gust));
+    if(field.dish!==goal)return {text:'A rajada levou a antena ao setor '+(field.dish+1)+'. Compense o desvio e tente o mesmo pulso.'};
+    done=field.pulse===2;
+    if(!done)field.pulse++;
+    text=done?'Três pulsos recebidos. A antena travou no enlace.':'Pulso recebido. A previsão mudou para a próxima captura.';
+  }
+  state.relayReady=done;return {done,text};
 }

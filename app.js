@@ -188,7 +188,8 @@ function render() {
     chrome('comunidades','Comunidades');communityPage(route);return;
   }
   if(route==='jogo/plantao'){chrome('laboratorios','Plantão no Datacenter');plantaoPage();return;}
-  if(route==='jogo/war-room'){chrome('laboratorios','War Room · Plantão em órbita');warroomPage();return;}
+  const drill=route.match(/^jogo\/war-room\/treino\/(rota|ecos|antena)$/);
+  if(route==='jogo/war-room'||drill){chrome('laboratorios','War Room · Plantão em órbita');warroomPage(drill?.[1]);return;}
   if(route==='jogo/correio'){chrome('laboratorios','Correio de Jobs');correioPage();return;}
   if(route==='aparencia'){chrome('conta','Aparência');appearancePage();return;}
   if(route==='lab/arquitetura'||route.startsWith('lab/arquitetura/')){
