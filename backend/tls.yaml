@@ -1,0 +1,26 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: stackquest-acme
+  namespace: stackquest
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: stackquest-acme-account
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: stackquest-api
+  namespace: stackquest
+spec:
+  secretName: stackquest-api-tls
+  dnsNames: [stackquest.157.254.207.208.nip.io]
+  issuerRef:
+    name: stackquest-acme
+    kind: Issuer
