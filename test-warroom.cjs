@@ -3,6 +3,26 @@ const assert=require('node:assert/strict');
 const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const vm=require('node:vm');
+test('comandos mantidos compartilham o ritmo e param no bloqueio ou ao soltar',()=>{
+  const timers=new Map(),steps=[];
+  let id=0;
+  const input=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom.js'),'utf8')+'\n;warHeldInput',{
+    setTimeout(fn,delay){assert.equal(delay,145);timers.set(++id,fn);return id;},
+    clearTimeout(key){timers.delete(key);}
+  })(key=>{steps.push(key);return key!=='w';},145);
+  function tick(){
+    assert.equal(timers.size,1);
+    const [key,fn]=timers.entries().next().value;
+    timers.delete(key);fn();
+  }
+  input.press('KeyD','d');input.press('KeyD','d');tick();
+  input.press(7,'s');tick();input.release(7);tick();
+  input.press('KeyW','w');assert.equal(timers.size,0);
+  input.release('KeyW');tick();input.release('KeyD');
+  assert.equal(timers.size,0);
+  input.press(8,'a');input.stop();assert.equal(timers.size,0);
+  assert.deepEqual(steps,['d','d','s','s','d','w','d','a']);
+});
 const {warState,warMove,warSolve,warTarget,warNear,warInteract,warDirections,warRestore,warCircuits,warTagLit}=vm.runInNewContext(
   readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+
   '\n;({warState,warMove,warSolve,warTarget,warNear,warInteract,warDirections,warRestore,warCircuits,warTagLit})');
