@@ -24,8 +24,8 @@ function runCorreio(shift, config) {
   const keys = new Set();
   const frames = [];
   let time = 0, retries = 0, acks = 0, skipped = 0;
-  function record(text) {
-    frames.push({time,text,waiting:waiting.map(m=>m.order),workers:benches.map(b=>b?.msg.order || null),
+  function record(text,kind='status',msg=null,worker=null) {
+    frames.push({time,text,event:{kind,order:msg?.order??null,worker},waiting:waiting.map(m=>m.order),workers:benches.map(b=>b?.msg.order || null),
       sent:receipts.length,retries,acks,skipped,delayed:delayed.length,receipts:[...receipts]});
   }
   function crash(msg) {
@@ -42,7 +42,7 @@ function runCorreio(shift, config) {
       const {msg} = delayed.shift();
       retries++;
       waiting.push(msg);
-      record('Reentrega de '+msg.id+' para '+msg.order+'. O ID do envelope foi preservado.');
+      record('Reentrega de '+msg.id+' para '+msg.order+'. O ID do envelope foi preservado.','retry',msg);
     }
     for (let w=0; w<benches.length; w++) {
       const job = benches[w];
@@ -51,22 +51,22 @@ function runCorreio(shift, config) {
       const tag = 'Worker '+(w+1)+' · '+msg.id+' / '+msg.order+'. ';
       if (shift >= 1 && msg.id === 'M-2' && msg.attempt === 1) {
         benches[w] = null;
-        record(tag+'Queda antes de gravar. '+crash(msg));
+        record(tag+'Queda antes de gravar. '+crash(msg),'crash',msg,w);
         continue;
       }
       const key = settings.key === 'order' ? msg.order : settings.key === 'message' ? msg.id : null;
       // A chave única e a etiqueta são gravadas juntas no mesmo banco.
       if (key && keys.has(key)) {
         skipped++;
-        record(tag+'Chave '+key+' já registrada. Nenhuma etiqueta adicional foi emitida.');
+        record(tag+'Chave '+key+' já registrada. Nenhuma etiqueta adicional foi emitida.','dedupe',msg,w);
       } else {
         if (key) keys.add(key);
         receipts.push(msg.order);
-        record(tag+'Etiqueta emitida'+(key?' na mesma transação da chave '+key:'')+'.');
+        record(tag+'Etiqueta emitida'+(key?' na mesma transação da chave '+key:'')+'.','print',msg,w);
       }
       benches[w] = null;
       if (shift === 2 && msg.id === 'M-1' && msg.attempt === 1) {
-        record(tag+'Queda após gravar a etiqueta. '+crash(msg));
+        record(tag+'Queda após gravar a etiqueta. '+crash(msg),'crash',msg,w);
       } else if (settings.ack === 'after') {
         acks++;
         record(tag+'ACK enviado após consultar ou gravar a etiqueta.');
@@ -78,7 +78,7 @@ function runCorreio(shift, config) {
       msg.attempt++;
       benches[w] = {msg,until:time+2};
       if (settings.ack === 'before') acks++;
-      record('Worker '+(w+1)+' recebeu '+msg.id+' / '+msg.order+' (tentativa '+msg.attempt+'). '+(settings.ack === 'before'?'ACK enviado ao receber.':'ACK pendente.'));
+      record('Worker '+(w+1)+' recebeu '+msg.id+' / '+msg.order+' (tentativa '+msg.attempt+'). '+(settings.ack === 'before'?'ACK enviado ao receber.':'ACK pendente.'),'receive',msg,w);
     }
     if (!waiting.length && !benches.some(Boolean) && !delayed.length) break;
     time++;

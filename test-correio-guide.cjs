@@ -40,7 +40,7 @@ test('guia usa o estoque, a instalação e os eventos reais para escolher a pró
     state.cursor=i;
     const current=guide('operation');
     assert.equal(current.stage,4);
-    assert.equal(current.target,i===run.frames.length-1?null:run.frames[i].sent?'#cj-finish':'#cj-step');
+    assert.equal(current.target,i===run.frames.length-1?null:run.frames[i].sent?'#cj-play':'#cj-step');
   }
   assert.match(guide().body,/4 segundos/);
   state.cursor=0;
@@ -71,4 +71,28 @@ test('com três bancadas o guia espera a terceira retirada antes de indicar a et
   assert.equal(correioGuide(state,'operation','bench',run).title,'Ocupe a bancada livre');
   state.cursor++;
   assert.equal(correioGuide(state,'operation','bench',run).title,'Acompanhe a primeira etiqueta');
+});
+test('queda e reentrega movem a encomenda apenas quando o ACK permite a recuperação',()=>{
+  for(const ack of ['before','after']){
+    const {frames}=runCorreio(2,correioConfig({workers:2,ack,key:'order'}));
+    for(let i=1;i<frames.length;i++){
+      const frame=frames[i],event=frame.event,svg=correioStation(frame,false,frames[i-1]);
+      if(event.kind==='crash'){
+        assert.ok(Number.isInteger(event.worker));
+        assert.match(svg,/>QUEDA</);
+        assert.equal(svg.includes('class="cj-transit"'),ack==='after');
+      }else if(event.kind==='retry'){
+        assert.equal(frame.waiting.at(-1),event.order);
+        assert.match(svg,/class="cj-transit"/);
+        assert.match(svg,/>REENTREGA</);
+      }else if(event.kind==='dedupe'){
+        assert.match(svg,/>JÁ REGISTRADO</);
+        assert.doesNotMatch(svg,/class="cj-transit"/);
+        assert.equal(frame.sent,frames[i-1].sent);
+      }else if(event.kind==='print'){
+        assert.equal(frame.receipts.at(-1),event.order);
+        assert.match(svg,/>ETIQUETA</);
+      }
+    }
+  }
 });

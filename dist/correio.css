@@ -13,9 +13,31 @@
 .cj-sources .pg-guided{outline-color:#163e52!important}
 .cj-game .pg-guided{scroll-margin:0}
 .cj-transit{opacity:0;pointer-events:none}
+.cj-watch{display:flex;align-items:center;gap:12px;background:#193944;color:#f3f3dd;padding:8px 14px;border-bottom:1px solid #4c6c71}
+.cj-game #cj-play{background:#e8d79c;color:#203b3f;border:0;font-weight:700;padding-inline:16px}
+.cj-watch progress{flex:1;min-width:32px;height:6px;accent-color:#c6e7b3}
+#cj-count{font:.82rem var(--mono);white-space:nowrap}
+#cj-monitor #cj-event{padding:10px 14px;min-height:3.5em;font:.9rem/1.45 var(--sans);background:var(--subtle);color:var(--ink)}
+#cj-level{position:fixed;inset:0;margin:auto;width:min(370px,calc(100vw - 32px));height:fit-content;max-height:90vh;overflow:auto;padding:0;border:1px solid #719993;border-radius:12px;background:#153741;color:#fff4d8;box-shadow:0 20px 70px #06151c77}
+#cj-level::backdrop{background:#071923a6}
+.cj-award{position:relative;text-align:center;padding:26px 23px 20px;background:radial-gradient(ellipse at 50% 10%,#315d5e,transparent 65%)}
+.cj-seal{position:relative;display:grid;place-items:center;width:96px;height:96px;margin:0 auto 14px;background:#eabe70;clip-path:polygon(50% 0,92% 22%,92% 73%,50% 100%,8% 73%,8% 22%);color:#243a3e;font:700 1.15rem var(--mono)}
+.cj-seal::before{content:'';position:absolute;inset:5px;clip-path:inherit;background:#263f46}
+.cj-seal span{position:relative;display:grid;place-items:center;width:78px;height:78px;clip-path:inherit;background:linear-gradient(130deg,#fff1bd,#e6b965 65%,#ca9654)}
+.cj-award small{color:#f5d490}.cj-award h2{font-size:1.65rem;margin:6px 0}.cj-award p{color:#dbe7df;line-height:1.5}
+.cj-award .pg-primary{background:#f5d490;color:#213d40!important;min-height:44px;margin-bottom:6px}
+.cj-award #cj-level-close{background:transparent;color:#fff4d8;border-color:#72948f;width:100%}
 @media(prefers-reduced-motion:no-preference){
   .cj-transit{animation:cj-transfer 560ms ease-in-out}
   @keyframes cj-transfer{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}82%{opacity:1}100%{opacity:0;transform:translate(var(--travel-x),var(--travel-y))}}
+  .cj-running .cj-belt{animation:cj-belt-cycle .52s linear infinite}
+  .cj-running .cj-clerk,.cj-running .correio-stamp{animation:cj-sort .42s ease-in-out infinite alternate}
+  @keyframes cj-belt-cycle{from{transform:translate(-5px,-2.5px)}to{transform:translate(5px,2.5px)}}
+  @keyframes cj-sort{from{transform:translateY(-2px)}to{transform:translateY(1px)}}
+  #cj-level[open] .cj-award{animation:cj-award-in .32s ease-out}
+  #cj-level[open] .cj-seal{animation:cj-seal-in .7s cubic-bezier(.18,.8,.28,1.17)}
+  @keyframes cj-award-in{from{opacity:.3;transform:translateY(12px)}to{opacity:1;transform:none}}
+  @keyframes cj-seal-in{0%{transform:scale(.3) rotate(-38deg)}68%{transform:scale(1.12) rotate(4deg)}100%{transform:scale(1) rotate(0)}}
 }
 .cj-game button:not(.pg-primary) {color:var(--ink);background:var(--surface);border:1px solid var(--control-edge,var(--line));padding:.4rem .7rem;border-radius:6px;font-size:.875rem}
 .cj-view,.cj-recipes,#cj-cost,#cj-slots{display:flex;flex-wrap:wrap;gap:.45rem}
