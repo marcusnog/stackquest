@@ -24,10 +24,13 @@ function warroomPage(drill){
   const practice=Object.hasOwn(warDrills,drill);
   const lesson='5-1',record=records.get(lesson)||{};
   const state=warState(practice?{stage:warDrills[drill],wave:1,collected:true,hull:'sealed',x:4,y:4}:record.warroom);
+  const sound=warSoundtrack(record.warroomAudio);
   let tutorial=record.warroomTutorial;
   main.innerHTML=`<div class="pg-game wr-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
   <div class="pg-content"><header class="pg-heading"><div><small>${practice?'TREINO DE CAMPO':'WAR ROOM · RPG DE ENGENHARIA'}</small><h1>${practice?warDrillNames[state.stage-3]:'Plantão em órbita'}</h1></div><div class="pg-wallet" ${practice?'hidden':''}><span>Incidentes resolvidos</span><strong id="wr-count"></strong><span id="wr-progress" aria-hidden="true">${'<i></i>'.repeat(warChapters.length)}<b id="wr-ship">➤</b></span></div></header>
   <details class="wr-drills" ${practice?'open':''}><summary>Treinos de campo</summary><nav aria-label="Treinos de campo">${warDrillLinks} · <a href="#jogo/war-room">Voltar à campanha</a></nav></details>
+  <details class="wr-drills wr-mixer"><summary>Som do convés</summary><div><small id="wr-track"></small>
+  ${[['music','Música'],['effects','Efeitos']].map(([id,label])=>'<label>'+label+' <input type="range" data-audio="'+id+'" min="0" max="100" value="'+sound.levels[id]+'"><span>'+sound.levels[id]+'%</span></label>').join('')}</div></details>
   <div class="wr-layout"><section class="pg-play"><header class="wr-mapbar"><div><h2 id="wr-sector"></h2><small id="wr-inspiration"></small></div><span id="wr-position"></span><span id="wr-power"></span></header>
   <div id="wr-board" tabindex="0" role="group" aria-label="Mapa da war room" aria-describedby="wr-keys wr-guide wr-position">${warMap()}<div class="wr-flyby" aria-hidden="true"><div class="wr-rock"><i></i><i></i><i></i><i></i></div></div></div>
   <div class="wr-objective"><span class="wr-cross" aria-hidden="true">◎</span><div><small>OBJETIVO ATUAL</small><p id="wr-guide"></p></div><button id="wr-help" type="button">Tutorial</button></div>
@@ -42,6 +45,12 @@ function warroomPage(drill){
   <dialog id="wr-dialog" aria-labelledby="wr-question"><form id="wr-puzzle"><small id="wr-terminal"></small><h2 id="wr-question"></h2><p id="wr-evidence"></p><p id="wr-decision-tip" hidden><strong>Tutorial · 4 de 4</strong> Divida os erros pelo total de pedidos de cada revisão. Selecione sua decisão e clique em Aplicar decisão.</p><div id="wr-input"></div><p role="status" id="wr-feedback"></p><div class="wr-actions"><button type="submit" class="pg-primary">Aplicar decisão</button><button id="wr-close" type="button">Voltar à sala</button></div></form></dialog></div></div>`;
   const root=main.querySelector('.wr-game'),el=id=>root.querySelector('#wr-'+id);
   const board=el('board'),dialog=el('dialog'),svg=board.querySelector('svg'),pad=root.querySelector('.wr-pad');
+  for(const slider of root.querySelectorAll('[data-audio]')){
+    const channel=slider.dataset.audio;
+    slider.oninput=()=>{sound.level(channel,Number(slider.value));slider.nextElementSibling.textContent=slider.value+'%';};
+    slider.onchange=()=>{save(lesson,{warroomAudio:{...sound.levels}});if(channel==='effects')sound.cue('probe');};
+  }
+  root.addEventListener('pointerdown',sound.unlock,true);root.addEventListener('click',sound.unlock,true);
   const labels={on:'Rede elétrica ativa',dark:'Sem energia',torch:'Sem energia · lanterna ligada',restored:'Energia restabelecida'};
   const persist=()=>{if(!practice)save(lesson,{warroom:{...state,field:{...state.field,turns:[...state.field.turns]}}});};
   const stepMs=145,controls=warHeldInput(move,stepMs);
@@ -60,6 +69,7 @@ function warroomPage(drill){
       (state.stage===3?'<path d="m-12 8 9-8-4-3 12-7" stroke="#553b38" fill="none" stroke-width="3"/>':'<path d="M-15-4h19m-12 5h20m-14 5h17" stroke="#734a38" fill="none" stroke-width="2"/>'))).join('');
   }
   function impact(){
+    sound.cue(state.stage===3?'quake':'wind');
     if(!reduced.matches)svg.animate(state.stage===3?[{transform:'translateX(-3px)'},{transform:'translateX(3px)'},{transform:'none'}]:[{opacity:.72},{opacity:1}],{duration:220});
   }
   function waitPulse(){
@@ -151,6 +161,8 @@ function warroomPage(drill){
   }
   function draw(){
     const ch=warChapters[state.stage],target=warTarget(state);
+    sound.scene(state.stage);
+    el('track').textContent=warScores[state.stage]?'Trilha · '+warScores[state.stage].name:'Plantão encerrado';
     const sector=Math.min(state.stage,warScenes.length-1);
     if(root.dataset.sector!==String(sector)){
       root.dataset.sector=String(sector);
@@ -220,7 +232,7 @@ function warroomPage(drill){
     const hazard=warHazard(state),beat=state.field.beat;
     if(warMove(state,key)){
       persist();drawMap();el('status').textContent='';
-      if(hazard?.remaining===1)impact();
+      if(hazard?.remaining===1)impact();else sound.cue('step');
       stride=stride===1?2:1;
       act(stride,stepMs*.68);return true;
     }else{
@@ -266,14 +278,17 @@ function warroomPage(drill){
     if(!dialog.open){el('feedback').textContent='';dialog.showModal();}
   }
   function fieldAction(action,value){
+    const previousPulse=state.field.pulse;
     const result=warFieldAction(state,action,value);if(!result)return;
     persist();
+    if(result.done||state.field.pulse!==previousPulse)sound.cue('success');
+    else sound.cue(action==='turn'||action==='steer'?'click':'error');
     if(result.done){
       dialog.close();
       if(practice){
-        disposeWarroom();disposeWarroom=null;
+        unbindGame();sound.scene(-1);
         root.querySelector('.pg-content').innerHTML='<section class="wr-drills wr-finished"><small>TREINO CONCLUÍDO</small><h1 tabindex="-1">'+warDrillNames[state.stage-3]+'</h1><p>'+result.text+'</p><button type="button">Repetir treino</button><nav>'+warDrillLinks+' · <a href="#jogo/war-room">Voltar à campanha</a></nav></section>';
-        root.querySelector('.wr-finished button').onclick=()=>warroomPage(drill);
+        root.querySelector('.wr-finished button').onclick=()=>{disposeWarroom();disposeWarroom=null;warroomPage(drill);};
         root.querySelector('h1').focus();return;
       }
       draw();act(4,480);el('status').textContent=result.text+' Retorne ao terminal.';return;
@@ -288,6 +303,8 @@ function warroomPage(drill){
     controls.stop();
     const target=warTarget(state);
     const action=warInteract(state);
+    const cue={puzzle:'open',relay:'open',probe:'probe',breaker:'click',torch:'pickup',item:'pickup',tag:'probe',bulkhead:'power'}[action];
+    if(cue)sound.cue(cue);
     if(action==='puzzle'){openPuzzle();return;}
     if(action==='relay'){renderField();return;}
     if(action==='probe'){
@@ -322,6 +339,7 @@ function warroomPage(drill){
     if(b.hasAttribute('data-turn')){fieldAction('turn',Number(b.dataset.turn));return;}
     if(b.hasAttribute('data-steer')){fieldAction('steer',Number(b.dataset.steer));return;}
     if(b.id==='wr-undo')order.pop();else order.push(Number(b.dataset.step));
+    sound.cue('click');
     sequence();el('feedback').textContent=order.length+' de 3 passos selecionados.';
     (el('input').querySelector('[data-step]:not(:disabled)')||el('puzzle').querySelector('[type=submit]')).focus();
   };
@@ -334,6 +352,7 @@ function warroomPage(drill){
     if(fields.has('setting')){
       const reading=warTransmit(state,Number(fields.get('setting')));
       if(!reading)return;
+      sound.cue(reading.ok?'success':'error');
       persist();draw();
       if(!reading.ok){el('feedback').textContent=reading.text+' Ajuste a configuração e repita esta janela.';return;}
       const message='Janela estabilizada. '+reading.text;
@@ -346,19 +365,22 @@ function warroomPage(drill){
     }
     if(fields.has('circuit')){
       if(!warRestore(state,warCircuits[Number(fields.get('circuit'))])){
+        sound.cue('error');
         el('feedback').textContent='Esse circuito não corresponde às duas pistas. Confira a ala no rádio e o ramal na etiqueta.';return;
       }
-      state.facing=state.x<warBreaker[0]?'d':'w';persist();dialog.close();draw();act(4,600);
+      sound.cue('power');state.facing=state.x<warBreaker[0]?'d':'w';persist();dialog.close();draw();act(4,600);
       svg.classList.add('wr-boot');el('status').textContent='Ravi no rádio: “Telemetria de volta! Já vejo a fila dos workers.”';return;
     }
     const input=stage===0?Number(fields.get('revision')):stage===1?Number(fields.get('workers')):order;
     if(!warSolve(state,input)){
+      sound.cue('error');
       el('feedback').textContent=stage===0?warChapters[0].hints[input]:stage===1?
         (input*3>24?'Esse limite invade as conexões reservadas ao checkout.':'Ainda há conexões livres. Divida o saldo igualmente pelos três workers.'):
         'Reserve a chave primeiro. Confirme a transação antes de liberar a mensagem com ACK.';
       return;
     }
     const graduated=stage===0&&tutorial==='active';
+    sound.cue(state.power==='dark'?'blackout':state.hull==='breached'?'quake':'success');
     if(graduated)setTutorial('done');
     persist();dialog.close();draw();if(state.hull==='breached')root.classList.add('wr-impacting');el('status').textContent=(graduated?'Tutorial concluído. ':'')+warChapters[stage].result;
   };
@@ -375,6 +397,7 @@ function warroomPage(drill){
   el('use').onclick=()=>{board.focus({preventScroll:true});use();};
   el('replay').onclick=()=>{controls.stop();Object.assign(state,warState());svg.classList.remove('wr-boot');root.classList.remove('wr-impacting');stride=0;pose(0);persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
   function keyboard(e){
+    if(!e.repeat&&!e.ctrlKey&&!e.altKey&&!e.metaKey)sound.unlock();
     if(intro.open||dialog.open||state.stage===warChapters.length||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
     const key=({ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d'})[e.key]||e.key.toLowerCase();
     if(Object.hasOwn(warDirections,key)){
@@ -387,11 +410,13 @@ function warroomPage(drill){
   }
   document.addEventListener('keydown',keyboard);
   const keyup=e=>controls.release(e.code||e.key);
-  const visibility=()=>{if(document.hidden)controls.stop();};
+  const visibility=()=>{if(document.hidden)controls.stop();sound.visibility();};
   document.addEventListener('keyup',keyup);document.addEventListener('visibilitychange',visibility);
   window.addEventListener('blur',controls.stop);
-  disposeWarroom=()=>{document.removeEventListener('keydown',keyboard);document.removeEventListener('keyup',keyup);
-    document.removeEventListener('visibilitychange',visibility);window.removeEventListener('blur',controls.stop);controls.stop();clearTimeout(idleTimer);};
+  function unbindGame(){document.removeEventListener('keydown',keyboard);document.removeEventListener('keyup',keyup);
+    window.removeEventListener('blur',controls.stop);controls.stop();clearTimeout(idleTimer);}
+  disposeWarroom=()=>{unbindGame();document.removeEventListener('visibilitychange',visibility);
+    root.removeEventListener('pointerdown',sound.unlock,true);root.removeEventListener('click',sound.unlock,true);sound.close();};
   draw();pose(0);
   if(!tutorial&&state.stage===0)showIntro();
 }
