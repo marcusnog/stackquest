@@ -28,7 +28,10 @@ for (const id of ['vps','deploy','cloud','k8s']) {
       assert.match(await labCommand(s,'npm test'),/FAIL/);
       s.files['app.js']=starterApp;
     }
-    for(const step of labGuides.find(g=>g.id===id).steps) {
+    const guide=labGuides.find(g=>g.id===id);
+    assert.ok(guide.goal&&guide.prerequisites);
+    for(const step of guide.steps) {
+      for(const field of ['title','body','why','expected','troubleshoot'])assert.ok(step[field],field);
       if(step.command) await labCommand(s,step.command);
     }
     assert.match(await checkLab(id,s),/200 ok/);
@@ -57,3 +60,15 @@ for (const id of ['vps','deploy','cloud','k8s']) {
     }
   });
 }
+
+test('Os seis cenários de dados e as duas bancadas de IA abrem seus tutoriais', () => {
+  const context=vm.createContext({icon:()=>''});
+  for(const file of ['practice-guides.js','studio.js','db-cases.js']){
+    vm.runInContext(readFileSync(join(__dirname,'dist',file),'utf8'),context);
+  }
+  const guides=vm.runInContext("[...dbCases.map(c=>c.id),'rag','adapter'].map(key=>practiceTutorial(key))",context);
+  for(const html of guides){
+    assert.match(html,/<details/);
+    assert.ok((html.match(/<li><strong>.+?<\/strong><p>.+?<\/p><\/li>/g)||[]).length>=4);
+  }
+});

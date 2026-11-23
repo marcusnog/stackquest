@@ -90,7 +90,7 @@ function mountAiPractice(box,id,prior,saveSettings){
   ];
   box.innerHTML='<h2>'+(rag?'Bancada de recuperação':'Bancada de fine-tuning')+'</h2><p>'+
     (rag?'Recupere evidências de um manual de suporte. O filtro de organização é aplicado antes da busca. Os vetores de três dimensões foram atribuídos à mão para tornar visível o efeito de vocabulários diferentes.':'Ajuste de fato as matrizes A e B de um classificador linear congelado para encaminhar chamados. O modelo base reconhece pagamento, senha e frete. Nove exemplos ensinam o vocabulário do suporte; seis frases ficam reservadas para avaliação. O exemplo demonstra a atualização de baixo posto em escala pequena.')+
-    '</p><form class="ai-controls"></form><div class="ai-result" role="status"></div>';
+    '</p>'+practiceTutorial(rag?'rag':'adapter')+'<form class="ai-controls"></form><div class="ai-result" role="status"></div>';
   const form=box.querySelector('form'),result=box.querySelector('.ai-result');
   for(const [key,label,choices] of fields){
     const field=document.createElement('label');field.textContent=label;
