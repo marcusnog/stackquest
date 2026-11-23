@@ -24,7 +24,7 @@ function showNextMission(hub){
   const done=countDone(),meter=hub.querySelector('.course-meter progress');
   meter.max=lessons.length;meter.value=done;
   hub.querySelector('.course-meter span').textContent=done+' de '+lessons.length+' missões concluídas';
-  const lesson=lessons.find(item=>records.get(item.id)?.started&&!complete(item))||nextLesson();
+  const lesson=nextLesson();
   const next=hub.querySelector('.next-study'),link=next.querySelector('a');
   next.querySelector('.study-context').textContent=lesson?lesson.module.title+' · Missão '+(lesson.l+1)+' de '+lesson.module.lessons.length:'Roadmap concluído';
   next.querySelector('h2').textContent=lesson?lesson.title:'Todas as missões concluídas';

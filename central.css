@@ -49,6 +49,58 @@
 #sample-output [data-level=pass] { color:#a6e3c6; }
 #sample-hint:not(:empty) { margin-top:12px; color:#ffe5b3; }
 .mission-link { display:inline-block; padding-block:15px; }
+.study-resume {
+  display:grid; grid-template-columns:minmax(0,1fr) auto minmax(145px,20%);
+  align-items:center; gap:16px 28px; padding:4px 0 24px; border-bottom:1px solid var(--line);
+}
+.study-resume h2 { margin-top:4px; font-size:clamp(1.25rem,2vw,1.65rem); line-height:1.2; letter-spacing:-.025em; }
+.study-resume .act { min-height:44px; justify-self:start; }
+.study-index-head,.study-links { display:flex; align-items:center; justify-content:space-between; gap:8px 18px; flex-wrap:wrap; }
+.study-index-head { margin:28px 0 12px; }
+.study-index-head h2 { font-size:1.18rem; letter-spacing:-.015em; }
+.study-filters { display:flex; flex-wrap:wrap; gap:10px 16px; align-items:flex-end; }
+.study-filters label { display:grid; gap:4px; min-width:0; color:var(--muted); font-size:.84rem; font-weight:600; }
+.study-filters label:first-child { flex:1 1 240px; }
+.study-filters :is(input,select) { box-sizing:border-box; width:100%; min-height:44px; padding:8px 10px; background:var(--surface); color:var(--ink); border:1px solid var(--control-edge); border-radius:4px; font:1rem var(--sans); }
+.study-filters+.library-filter-status { margin-bottom:0; }
+.course-index { border-top:1px solid var(--control-edge); }
+.syllabus-module,.shelf-group { border-bottom:1px solid var(--line); }
+.syllabus-module summary { display:grid; grid-template-columns:3ch minmax(0,1fr) auto 16px; gap:12px; align-items:center; padding:14px 8px; cursor:pointer; list-style:none; }
+.syllabus-module summary::-webkit-details-marker { display:none; }
+.syllabus-module summary:hover,.study-row:focus-within { background:var(--subtle); }
+.syllabus-module[open] summary .icon { transform:rotate(180deg); }
+.module-number,.module-tally,.study-time { font:.82rem/1.4 var(--mono); color:var(--muted); white-space:nowrap; }
+.study-rows { list-style:none; margin:0; padding:0; }
+.syllabus-module .study-rows,.study-practice { margin-left:calc(3ch + 20px); }
+.study-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(7rem,auto) 8ch; align-items:baseline; gap:8px 16px; border-top:1px solid var(--line); padding:0 8px; }
+.study-name,.study-practice { display:inline-flex; align-items:center; min-height:44px; font-weight:600; color:var(--link); }
+.study-name:hover,.study-practice,.study-links a { text-decoration:underline; text-underline-offset:3px; }
+.study-status { color:var(--muted); font-size:.85rem; }
+.study-status[data-started=true] { color:var(--accent-ink); font-weight:650; }
+.study-time { text-align:right; }
+.shelf-group { display:grid; grid-template-columns:minmax(135px,22%) minmax(0,1fr); gap:20px; padding:12px 0; }
+.shelf-group h3 { font-size:1.03rem; margin-top:10px; }
+.shelf-group .study-row:first-child { border-top:0; }
+.shelf-group .study-row { padding-block:0 10px; }
+.shelf-group .study-row p { color:var(--muted); font-size:.9rem; line-height:1.45; max-width:62ch; margin-bottom:5px; }
+.shelf-group .textlink { font-size:.86rem; padding-block:4px; }
+.study-empty { padding:18px 0; color:var(--muted); }
+.study-links { justify-content:flex-start; padding-block:18px; font-size:.9rem; color:var(--link); }
+@media(max-width:740px){
+  .study-resume { grid-template-columns:minmax(0,1fr) auto; gap:10px 14px; }
+  .study-resume .course-meter { grid-column:1/-1; max-width:18rem; }
+  .shelf-group { display:block; }
+  .shelf-group h3 { margin:4px 0; }
+}
+@media(max-width:540px){
+  .study-resume { grid-template-columns:minmax(0,1fr); }
+  .study-filters label { flex:1 1 11rem; }
+  .study-filters label:first-child { flex-basis:100%; }
+  .study-row { grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:0 8px; padding:5px 0 8px; }
+  .study-row>div { grid-column:1/-1; }
+  .study-row .study-name { min-height:40px; }
+  .syllabus-module .study-rows,.study-practice { margin-left:12px; }
+}
 .catalog-filters { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:28px; }
 .catalog-filters button { padding:7px 14px; min-height:44px; border-radius:4px; border:1px solid var(--line); font-size:.9rem; color:var(--ink); background:var(--surface); }
 .catalog-filters button[aria-pressed=true] { border-color:var(--ink); background:var(--ink); color:var(--surface); }

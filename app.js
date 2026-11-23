@@ -21,7 +21,16 @@ function save(id, change) {
 }
 function complete(lesson) {return Boolean(records.get(lesson.id)?.date);}
 function countDone(items=lessons) {return items.filter(complete).length;}
-function nextLesson() {return lessons.find(lesson=>!complete(lesson));}
+function nextLesson(items=lessons) {
+  let first,latest;
+  for(const lesson of items){
+    if(complete(lesson))continue;
+    first??=lesson;
+    const record=records.get(lesson.id);
+    if(record?.started&&(!latest||(Number(record.lastOpened)||0)>(Number(records.get(latest.id).lastOpened)||0)))latest=lesson;
+  }
+  return latest||first;
+}
 function dateKey(date) {return [date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');}
 function streakDays() {
   const dates = new Set([...records.values()].map(record=>record.date));
@@ -72,73 +81,21 @@ function chrome(page, label) {
   profile.innerHTML='<div class="avatar">'+icon('terminal',22)+'</div><div><strong>'+title+'</strong><small>Nível '+String(level).padStart(2,'0')+' · '+(countDone()*xp+labXP())+' XP</small></div>';
 }
 function lessonLink(lesson) {return '#missao/'+lesson.id;}
-function hero() {
-  const lesson = nextLesson();
-  return '<section class="hero"><div class="hero-body"><div class="herolabel">'+icon(lesson?'flag':'trophy',15)+(lesson?'MISSÃO ATUAL':'TRILHA CONCLUÍDA')+'</div><h2>'+
-    (lesson?lesson.title:'Roadmap completo')+'</h2><p>'+(lesson?(lesson.id==='1-1'?'Defina o que seu sistema precisa fazer e quais limites vão orientar o projeto.':lesson.module.description):'Revisite suas decisões de arquitetura e explore suas conquistas.')+
-    '</p><div class="hero-foot"><a class="act" href="'+(lesson?lessonLink(lesson):'#conquistas')+'">'+icon(lesson?'play':'trophy',15)+(lesson?(records.get(lesson.id).started?'Continuar missão':'Iniciar missão'):'Ver conquistas')+'</a>'+
-    (lesson?'<span class="meta">'+icon('clock',15)+lesson.minutes+' min</span><span class="meta">'+icon('bolt',15)+xp+' XP</span>':'')+'</div></div><div class="hero-art"><canvas id="blueprint" aria-hidden="true"></canvas></div></section>';
-}
-function moduleCard(module, m, active) {
-  const items=lessons.filter(l=>l.m===m);
-  const rows=items.map((lesson,i)=>{
-    const done=complete(lesson),current=lesson.id===active?.id;
-    const symbol=done?icon('check',14):current?icon('play',12):String(i+1).padStart(2,'0');
-    return '<a class="lesson-row '+(done?'done':current?'current':'')+'" href="'+lessonLink(lesson)+'"><span class="step">'+symbol+'</span><span>'+lesson.title+(done?' <span class="sr">— concluída</span>':'')+'</span><span class="time">'+lesson.minutes+' min</span></a>';
-  }).join('')+(m===2?'<a class="lesson-row" href="#lab/bancos"><span class="step">'+icon('database',14)+'</span><span>Prática · Escolha de banco de dados</span><span class="time">'+dbDone()+'/6</span></a>':'');
-  return '<details class="module" '+(active?.m===m?'open':'')+'><summary><span class="square '+module.color+'">'+icon(module.icon,24)+'</span><div class="module-info"><div class="eyebrow">Módulo '+String(m+1).padStart(2,'0')+'</div><h3>'+module.title+'</h3></div><span class="module-count" aria-label="'+countDone(items)+' de '+items.length+' missões concluídas">'+countDone(items)+' / '+items.length+'</span>'+icon('chevron',15)+'</summary><div class="lessons">'+rows+'</div></details>';
-}
-function progressCard() {
-  const done=countDone(),pct=Math.round(100*done/lessons.length);
-  return '<section class="card"><div class="card-head">'+icon('gauge')+'Seu progresso</div><div class="progress-body"><div class="ring" style="--percent:'+pct+'%"><b>'+pct+'%</b></div><div class="progress-copy"><strong>'+done+' de '+lessons.length+'</strong><small>missões concluídas</small></div></div><div class="stat-line"><span>Experiência total</span><b>'+icon('bolt',15)+' '+(done*xp+labXP())+' XP</b></div></section>';
-}
 function awardProgress(badge) {
   const value=Math.min(badge.goal,badge.progress());
   return '<div class="bar" aria-hidden="true"><span style="width:'+(100*value/badge.goal)+'%"></span></div><div class="bar-label"><span>'+(value===badge.goal?'Conquistada':'Progresso')+'</span><span>'+value+' / '+badge.goal+'</span></div>';
 }
-function awardCard() {
-  const next=badges.find(b=>b.progress()<b.goal),b=next??badges.at(-1);
-  return '<section class="card"><div class="card-head">'+icon('medal')+(next?'Próxima conquista':'Última conquista')+'</div><div class="award-body"><span class="badge-art">'+icon(b.icon,22)+'</span><div><b>'+b.title+'</b><small>'+b.detail+'</small></div></div>'+awardProgress(b)+'</section>';
-}
-function roadmap() {
-  main.innerHTML=header('Trilha de aprendizagem','Roadmap de System Design','Aprenda a projetar sistemas distribuídos, uma missão por vez.')+hero()+
-    '<div class="dashboard"><section><div class="section-title"><h2>Módulos da trilha</h2><a class="textlink" href="#avancado">Trilha avançada de IA e sistemas</a></div>'+
-    course.map((m,i)=>moduleCard(m,i,nextLesson())).join('')+'</section><aside class="asidecards" aria-label="Progresso e prática">'+progressCard()+'<section class="card lab-shortcut"><div class="card-head">'+icon('terminal')+'Laboratórios</div><p>Provisione uma VPS, publique sua API e escale um cluster.</p><a class="textlink" href="#laboratorios">Abrir ambiente prático</a></section>'+awardCard()+'</aside></div>';
-}
-function advancedRoadmap(){
-  const items=lessons.filter(l=>l.m>=coreModules.length);
-  const next=items.find(l=>!complete(l));
-  main.innerHTML='<a class="back" href="#roadmap">Voltar ao roadmap</a>'+
-    header('Trilha avançada','IA e sistemas distribuídos','Projete um serviço com LLM, investigue a recuperação de evidências e avalie um ajuste de modelo antes de colocá-lo em produção.')+
-    '<div class="dashboard"><section><div class="section-title"><h2>Missões avançadas</h2><span class="counter">'+countDone(items)+' / '+items.length+'</span></div>'+
-    course.slice(coreModules.length).map((m,i)=>moduleCard(m,i+coreModules.length,next)).join('')+'</section><aside class="asidecards"><section class="card"><div class="card-head">'+icon('terminal')+'Experimentos no navegador</div><p class="footnote">Compare evidências recuperadas e observe o efeito de treinar um adaptador com exemplos rotulados.</p><p><a class="textlink" href="#missao/9-2">Comparar a recuperação no RAG</a></p><p><a class="textlink" href="#missao/10-3">Treinar um adaptador pequeno</a></p></section></aside></div>';
-}
 function referenceLink(lesson) {
   return '<a class="textlink" target="_blank" rel="noopener noreferrer" href="'+lesson.reference.url+'">'+lesson.reference.title+' '+icon('external',14)+'</a>';
-}
-function library() {
-  main.innerHTML=header('Material de estudo','Biblioteca','Encontre uma missão pelo tema e consulte a documentação usada na trilha.')+
-    '<div class="library-search">'+icon('search',18)+'<input type="search" id="search" aria-label="Buscar por assunto ou módulo" placeholder="Buscar por assunto ou módulo"></div><div class="library-filter-status"><p id="searchCount" role="status"></p><button type="button" class="textlink" id="clear-search" hidden>Limpar busca</button></div><div class="library-grid" id="results"></div>';
-  const search=document.getElementById('search'),clear=document.getElementById('clear-search');
-  const normalize=s=>s.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  function filter() {
-    const term=normalize(search.value.trim());
-    clear.hidden=!search.value;
-    const results=lessons.filter(l=>normalize([l.title,l.module.title,l.reference.title,...l.paragraphs].join(' ')).includes(term));
-    document.getElementById('results').innerHTML=results.map(l=>'<article class="resource"><div class="eyebrow">'+l.module.title+'</div><h2><a href="'+lessonLink(l)+'">'+l.title+'</a></h2><p>'+l.exercise+'</p>'+referenceLink(l)+'</article>').join('') || '<p>Nenhuma missão encontrada. Tente outro assunto.</p>';
-    document.getElementById('searchCount').textContent=results.length===1?'1 missão encontrada':results.length+' missões encontradas';
-  }
-  clear.onclick=()=>{search.value='';filter();search.focus();};
-  search.addEventListener('input',filter);filter();
 }
 function awards() {
   const earned=badges.filter(b=>b.progress()>=b.goal).length;
   main.innerHTML=header('Seu progresso','Conquistas',earned+' de '+badges.length+' conquistas desbloqueadas. Cada módulo completo conta para a carreira, até o nível 7.')+
     '<div class="awards">'+badges.map(b=>'<article class="achievement '+(b.progress()<b.goal?'unearned':'')+'"><div class="badge-art">'+icon(b.icon,26)+'</div><h2>'+b.title+'</h2><p>'+b.detail+'</p>'+awardProgress(b)+'</article>').join('')+'</div>';
 }
-function showLesson(l) {
+function showLesson(l,opening) {
   const record=records.get(l.id),done=complete(l);
-  if (!record.started) save(l.id,{started:true});
+  if (!done&&(opening||!record.started))save(l.id,{started:true,lastOpened:Date.now()});
   const advanced=l.m>=coreModules.length;
   const designCase=archCases.find(c=>archLessons[c.id]===l.id);
   main.innerHTML='<div class="lesson-wrap">'+(advanced?'<a class="back" href="#avancado">Voltar à trilha avançada</a>':'<a class="back" href="#roadmap">Voltar ao roadmap</a>')+
@@ -154,6 +111,12 @@ function showLesson(l) {
     (l.m===2?'<section class="lessoncard"><h2>Pratique a escolha de banco</h2><a class="textlink" href="#lab/bancos">Testar modelos de dados no laboratório</a></section>':'')+
     (designCase?'<section class="lessoncard"><h2>Desenhe a arquitetura</h2><a class="textlink" href="#lab/arquitetura/'+designCase.id+'">'+studioText(designCase.title)+'</a></section>':'')+
     '<section class="lessoncard"><h2>Leitura de apoio</h2>'+referenceLink(l)+'</section></div>';
+  const origin=history.state?.studyReturn;
+  if(typeof origin==='string'&&/^#(biblioteca|roadmap|avancado)(?:\?|$)/.test(origin)){
+    const back=main.querySelector('.back');
+    back.href=origin;
+    back.textContent=origin.startsWith('#biblioteca')?'Voltar à biblioteca':origin.startsWith('#avancado')?'Voltar à trilha avançada':'Voltar ao roadmap';
+  }
   const note=document.getElementById('note'),quiz=document.getElementById('test'),button=document.getElementById('finish'),status=document.getElementById('finish-status');
   const experiment=document.getElementById('ai-experiment');
   if(experiment)mountAiPractice(experiment,l.id,record.practice,practice=>save(l.id,{practice}));
@@ -181,13 +144,14 @@ function showLesson(l) {
     chrome('roadmap',l.title);showComplete();
   });
 }
-function render() {
+function render(opening=false) {
   applyAppearance();
   if(typeof disposeLabStudio==='function'){disposeLabStudio();disposeLabStudio=null;}
   if(typeof disposePlantao==='function'){disposePlantao();disposePlantao=null;}
   if(typeof disposeCorreio==='function'){disposeCorreio();disposeCorreio=null;}
   if(typeof disposeWarroom==='function'){disposeWarroom();disposeWarroom=null;}
-  const route=location.hash.slice(1)||'central';
+  const hash=location.hash.slice(1)||'central';
+  const route=/^(roadmap|avancado|biblioteca)(?:\?|$)/.exec(hash)?.[1]||hash;
   if(['central','briefing','diagnostico'].includes(route)){
     missionHub(route);
     return;
@@ -205,7 +169,7 @@ function render() {
   if(route==='lab/arquitetura'||route.startsWith('lab/arquitetura/')){
     chrome('laboratorios','Simulador de arquitetura');architectureBoard(route.split('/')[2]);document.dispatchEvent(new Event('stackquest:render'));return;
   }
-  if(route==='avancado'){chrome('roadmap','Trilha avançada');advancedRoadmap();document.dispatchEvent(new Event('stackquest:render'));return;}
+  if(route==='avancado'){chrome('roadmap','Trilha avançada');studyIndex('avancado');document.dispatchEvent(new Event('stackquest:render'));return;}
   if(route==='conta'||route==='cadastro'){chrome('conta',account.name?'Minha conta':'Conta');accountPage();return;}
   if(route==='lab/bancos'||route.startsWith('lab/bancos/')){
     chrome('laboratorios','Escolha de banco de dados');dbLab(route.split('/')[2]);document.dispatchEvent(new Event('stackquest:render'));return;
@@ -214,13 +178,13 @@ function render() {
   const lab=labGuides.find(g=>route==='lab/'+g.id);
   const page=lab?'laboratorios':Object.hasOwn(pages,route)?route:'roadmap';
   chrome(page,lab?lab.title:lesson?lesson.title:pages[page][0]);
-  if (lesson) showLesson(lesson);
+  if (lesson) showLesson(lesson,opening);
   else if (lab) workspace(lab);
   else if (page==='laboratorios') labsHome();
-  else if (page==='biblioteca') library();
+  else if (page==='biblioteca') studyIndex('biblioteca');
   else if (page==='conquistas') awards();
   else if (page==='ranking') rankingPage();
-  else roadmap();
+  else studyIndex('roadmap');
   document.dispatchEvent(new Event('stackquest:render'));
 }
 document.querySelector('[data-icon="panel"]').innerHTML=icon('panel',18);
@@ -242,13 +206,19 @@ document.querySelector('.skip').addEventListener('click',event=>{
   event.preventDefault();
   main.focus();
 });
-window.addEventListener('hashchange',()=>{render();main.focus({preventScroll:true});window.scrollTo(0,0);});
+window.addEventListener('hashchange',event=>{
+  const previous=new URL(event.oldURL).hash;
+  if(location.hash.startsWith('#missao/')&&/^#(biblioteca|roadmap|avancado)(?:\?|$)/.test(previous)&&!history.state?.studyReturn){
+    history.replaceState({...history.state,studyReturn:previous},'');
+  }
+  render(true);main.focus({preventScroll:true});window.scrollTo(0,0);
+});
 window.addEventListener('storage',event=>{
   if(account.name)return;
   if(event.key!==null&&!event.key.startsWith(prefix))return;
   lessons.forEach(l=>records.set(l.id,readRecord(l.id)));render();
 });
-restoreAccount().then(()=>{reloadProgress();render();}).catch(()=>{
+restoreAccount().then(()=>{reloadProgress();render(true);}).catch(()=>{
   main.innerHTML='<section class="lessoncard"><h2>Reconecte sua conta</h2><p>A API da VPS está indisponível. Seu progresso continuará vinculado à sua conta.</p><button class="act">Tentar novamente</button></section>';
   main.querySelector('button').onclick=()=>location.reload();
 });
