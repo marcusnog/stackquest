@@ -61,6 +61,7 @@ function warroomPage(drill){
   el('drop').before(weatherLayer);
   function weather(){
     const hazard=warHazard(state);
+    syncMusic(hazard);
     el('weather').hidden=!hazard;
     if(!hazard){weatherLayer.replaceChildren();delete root.dataset.hazard;return;}
     root.dataset.hazard=state.stage===3?'quake':'dust';
@@ -159,15 +160,17 @@ function warroomPage(drill){
     el('use').disabled=!near;weather();
     drawTutorial();
   }
-  function syncMusic(){
-    const alert=warMusicAlert(state),score=warScores[state.stage];
+  function syncMusic(hazard){
+    const alert=warMusicAlert(state,hazard),score=warScores[state.stage];
     const label={blackout:'apagão',quake:'tremor',storm:'tempestade'}[alert];
-    sound.scene(state.stage,alert);
-    el('track').textContent=score?'Trilha · '+score.name+(label?' · '+label:''):'Plantão encerrado';
+    const remaining=hazard?.remaining??null;
+    sound.scene(state.stage,alert,remaining);
+    const countdown=remaining?' em '+remaining+(remaining===1?' pulso':' pulsos'):'';
+    const title=score?'Trilha · '+score.name+(label?' · '+label+countdown:''):'Plantão encerrado';
+    if(el('track').textContent!==title)el('track').textContent=title;
   }
   function draw(){
     const ch=warChapters[state.stage],target=warTarget(state);
-    syncMusic();
     const sector=Math.min(state.stage,warScenes.length-1);
     if(root.dataset.sector!==String(sector)){
       root.dataset.sector=String(sector);
@@ -291,7 +294,7 @@ function warroomPage(drill){
     if(result.done){
       dialog.close();
       if(practice){
-        unbindGame();syncMusic();
+        unbindGame();syncMusic(null);
         const mixer=root.querySelector('.wr-mixer');
         root.querySelector('.pg-content').innerHTML='<section class="wr-drills wr-finished"><small>TREINO CONCLUÍDO</small><h1 tabindex="-1">'+warDrillNames[state.stage-3]+'</h1><p>'+result.text+'</p><button type="button">Repetir treino</button><nav>'+warDrillLinks+' · <a href="#jogo/war-room">Voltar à campanha</a></nav></section>';
         root.querySelector('.wr-finished').append(mixer);

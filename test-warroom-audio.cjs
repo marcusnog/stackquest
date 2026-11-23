@@ -15,6 +15,28 @@ test('o arranjo acompanha o perigo salvo, inclusive com a lanterna ligada',()=>{
   ])assert.equal(warMusicAlert(warState(raw)),alert);
 });
 
+test('a contagem salva adensa o arranjo a cada pulso e alivia depois do impacto',()=>{
+  const engine=readFileSync(require('node:path').join(__dirname,'dist/warroom-engine.js'),'utf8');
+  const tones=[];
+  const game=vm.runInNewContext(engine+'\n'+source+`
+    warTone=(ctx,bus,time,hz,duration,type,level)=>tones.push(level);
+    ;({warState,warHazard,warWeatherTurn,warMusicAlert,warScores,warTensionStep})`,{tones});
+  for(const stage of [3,5]){
+    let state=game.warState({stage,wave:1}),snapshots=[];
+    for(let pulse=0;pulse<4;pulse++){
+      state=game.warState(JSON.parse(JSON.stringify(state)));
+      const hazard=game.warHazard(state);
+      tones.length=0;
+      for(let s=0;s<8;s++)game.warTensionStep(null,null,game.warScores[stage],s,0,game.warMusicAlert(state),1,hazard.remaining);
+      snapshots.push({count:tones.length,peak:Math.max(...tones)});
+      game.warWeatherTurn(state);
+    }
+    assert.deepEqual(snapshots.map(s=>s.count),[4,8,16,4]);
+    assert.ok(snapshots[0].peak<snapshots[1].peak&&snapshots[1].peak<snapshots[2].peak);
+    assert.deepEqual(snapshots[0],snapshots[3]);
+  }
+});
+
 test('áudio do convés respeita gesto inicial, volumes, pausa e saída do jogo',()=>{
   let context,voices=0;
   const clocks=new Set(),doc={hidden:false};
@@ -58,6 +80,13 @@ test('áudio do convés respeita gesto inicial, volumes, pausa e saída do jogo'
     assert.deepEqual(layers.slice(start).map(([name,mix])=>name===alert&&mix),[.5,1,.75,.5,.25]);
     assert.equal(clocks.size,1);assert.equal(effects.gain.value,0);
   }
+  sound.scene(5,'storm',3);
+  const before=voices;
+  sound.scene(5,'storm',2);sound.scene(5,'storm',2);sound.scene(5,'storm',1);
+  assert.equal(voices,before+2); // Two game pulses between audio ticks, one accent each.
+  sound.scene(5,'storm',3);assert.equal(voices,before+2);
+  sound.level('music',0);sound.scene(5,'storm',2);assert.equal(voices,before+2);
+  sound.level('music',40);
   doc.hidden=true;sound.visibility();assert.equal(context.state,'suspended');assert.equal(clocks.size,0);
   doc.hidden=false;sound.visibility();assert.equal(context.state,'running');assert.equal(clocks.size,1);
   sound.scene(-1);assert.equal(clocks.size,0);
