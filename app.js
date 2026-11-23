@@ -175,6 +175,7 @@ function showLesson(l) {
   });
 }
 function render() {
+  if(typeof disposeLabStudio==='function'){disposeLabStudio();disposeLabStudio=null;}
   const route=location.hash.slice(1)||'roadmap';
   if(route==='avancado'){chrome('roadmap','Trilha avançada');advancedRoadmap();document.dispatchEvent(new Event('stackquest:render'));return;}
   if(route==='conta'||route==='cadastro'){chrome('conta',account.name?'Minha conta':'Conta');accountPage();return;}
