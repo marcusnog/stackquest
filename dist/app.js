@@ -182,6 +182,7 @@ function render() {
   if(typeof disposePlantao==='function'){disposePlantao();disposePlantao=null;}
   const route=location.hash.slice(1)||'roadmap';
   if(route==='jogo/plantao'){chrome('laboratorios','Plantão no Datacenter');plantaoPage();return;}
+  if(route==='jogo/correio'){chrome('laboratorios','Correio de Jobs');correioPage();return;}
   if(route==='aparencia'){chrome('conta','Aparência');appearancePage();return;}
   if(route==='lab/arquitetura'||route.startsWith('lab/arquitetura/')){
     chrome('laboratorios','Simulador de arquitetura');architectureBoard(route.split('/')[2]);document.dispatchEvent(new Event('stackquest:render'));return;
