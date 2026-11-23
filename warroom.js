@@ -1,4 +1,22 @@
 let disposeWarroom;
+// OS key repeat and touch hardware have different delays. All held controls share one step clock.
+function warHeldInput(step,period){
+  const held=new Map();
+  let timer=0;
+  function advance(){
+    clearTimeout(timer);
+    const key=Array.from(held.values()).at(-1);
+    if(key&&step(key))timer=setTimeout(advance,period);
+  }
+  return {
+    press(id,key){if(!held.has(id)){held.set(id,key);advance();}},
+    release(id){
+      const active=Array.from(held.keys()).at(-1);
+      if(held.delete(id)&&active===id){clearTimeout(timer);if(held.size)timer=setTimeout(advance,period);}
+    },
+    stop(){held.clear();clearTimeout(timer);}
+  };
+}
 function warroomPage(){
   const lesson='5-1',state=warState(records.get(lesson)?.warroom);
   main.innerHTML=`<div class="pg-game wr-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
@@ -15,7 +33,9 @@ function warroomPage(){
   const board=el('board'),dialog=el('dialog'),svg=board.querySelector('svg'),pad=root.querySelector('.wr-pad');
   const labels={on:'Rede elétrica ativa',dark:'Sem energia',torch:'Sem energia · lanterna ligada',restored:'Energia restabelecida'};
   const persist=()=>save(lesson,{warroom:{...state}});
-  let order=[],lastMove=0;
+  const stepMs=145,controls=warHeldInput(move,stepMs);
+  root.style.setProperty('--wr-step',stepMs+'ms');
+  let order=[],lastDrop='',aimAngle=warBeam(state).angle;
   let stride=0,idleTimer=0;
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
   function pose(frame){
@@ -29,22 +49,26 @@ function warroomPage(){
   }
   function drawMap(){
     const target=warTarget(state),dark=['dark','torch'].includes(state.power);
-    const [px,py]=warPoint([state.x,state.y]),player=el('player');
-    player.style.transform='translate('+px+'px,'+py+'px)';
+    const [px,py]=warPoint([state.x,state.y]);
+    svg.style.setProperty('--wr-at','translate('+px+'px,'+py+'px)');
     const mask=el('dark'),lamp=warBeam(state),lit=state.power==='torch';
-    el('beam').setAttribute('transform','translate('+lamp.x+' '+lamp.y+') rotate('+lamp.angle+')');
+    aimAngle+=((lamp.angle-aimAngle)%360+540)%360-180;
+    svg.style.setProperty('--wr-aim','translate('+(lamp.x-px)+'px,-17px) rotate('+aimAngle+'deg)');
     el('held').setAttribute('visibility',lit?'visible':'hidden');
-    el('held').setAttribute('transform','translate('+(lamp.x-px)+' -17) rotate('+lamp.angle+')');
     if(lit)mask.setAttribute('mask','url(#wr-light-mask)');else mask.removeAttribute('mask');
     mask.setAttribute('opacity',dark ? .94 : 0);
     el('conduit').setAttribute('visibility',state.tagRead||warTagLit(state)?'visible':'hidden');
     svg.classList.toggle('wr-offline',dark);
     svg.classList.toggle('wr-restored',state.power==='restored');
-    const beacon=state.power==='dark'?warAt(warTorch,'<circle r="11" fill="#f2cd84" opacity=".25"/>'+warItemArt('torch')):'';
-    el('beacon').innerHTML=beacon+(state.power==='dark'?'<use href="#wr-player" opacity=".32"/>':'');
+    el('beacon').setAttribute('visibility',state.power==='dark'?'visible':'hidden');
     const visible=target&&(target.kind!=='tag'||warTagLit(state))&&(target.kind!=='breaker'||Math.abs(state.x-warBreaker[0])+Math.abs(state.y-warBreaker[1])<=2);
-    el('drop').innerHTML=visible?warAt(target.pos,'<ellipse class="wr-halo" cy="3" rx="19" ry="8" fill="none" stroke="#ffe18b" stroke-width="2" stroke-dasharray="5 3"/>'+
-      (target.kind==='item'?warItemArt(state.stage):'')+'<path d="m-5-37 5 6 5-6z" fill="#ffe18b" stroke="#594b35"/>'):'';
+    const dropKey=target?state.stage+'-'+target.kind:'';
+    if(dropKey!==lastDrop){
+      lastDrop=dropKey;
+      el('drop').innerHTML=target?warAt(target.pos,'<ellipse class="wr-halo" cy="3" rx="19" ry="8" fill="none" stroke="#ffe18b" stroke-width="2" stroke-dasharray="5 3"/>'+
+        (target.kind==='item'?warItemArt(state.stage):'')+'<path d="m-24 1 5-3v6z" fill="#ffe18b" stroke="#594b35"/>'):'';
+    }
+    el('drop').style.opacity=visible?'1':'0';
     const near=warReach(state,target);
     el('position').textContent='Lia · '+warCoord([state.x,state.y]);
     board.setAttribute('aria-label','Mapa da war room. '+el('position').textContent+(near?'. Ao alcance: '+target.name:'.'));
@@ -55,10 +79,9 @@ function warroomPage(){
     const ch=warChapters[state.stage],target=warTarget(state);
     el('count').textContent=state.stage+' / 3';el('power').textContent=labels[state.power];
     el('progress').querySelectorAll('i').forEach((pip,i)=>pip.classList.toggle('done',i<state.stage));
-    el('ship').style.left=(state.stage*30)+'px';
+    el('ship').style.transform='translateX('+(state.stage*30)+'px)';
     const storm=state.power==='torch'||state.power==='dark',breached=state.hull==='breached';
     root.classList.toggle('wr-storm',storm);root.classList.toggle('wr-breached',breached);
-    el('ice').setAttribute('visibility',breached?'visible':'hidden');
     const card=storm?'Evento solar':breached?'Impacto orbital':state.stage===3?'Fim da travessia':'Incidente '+(state.stage+1)+' de 3';
     if(el('card-no').textContent!==card){
       el('card-no').textContent=card;
@@ -93,13 +116,14 @@ function warroomPage(){
     if(warMove(state,key)){
       persist();drawMap();el('status').textContent='';
       stride=stride===1?2:1;
-      act(stride,125);
+      act(stride,stepMs*.68);return true;
     }else{
       clearTimeout(idleTimer);pose(0);drawMap();
       if(previousFacing!==state.facing)persist();
       const [dx,dy]=warDirections[key];
       const ice=state.hull==='breached'&&warIce.some(([x,y])=>x===state.x+dx&&y===state.y+dy);
       el('status').textContent=ice?'Piso congelado. A antepara em G1 isola o vazamento.':warReach(state,warTarget(state))?'Ao alcance: '+warTarget(state).name+'.':'Passagem bloqueada. Contorne a bancada ou a parede.';
+      return false;
     }
   }
   function sequence(){
@@ -117,6 +141,8 @@ function warroomPage(){
     dialog.showModal();
   }
   function use(){
+    controls.stop();
+    const target=warTarget(state);
     const action=warInteract(state);
     if(action==='puzzle'){openPuzzle();return;}
     if(action==='breaker'){
@@ -127,7 +153,16 @@ function warroomPage(){
     }
     if(action==='far'){el('status').textContent='Nada ao alcance. Siga a indicação do rádio e fique no item ou na casa vizinha.';return;}
     persist();draw();
-    if(action==='torch'||action==='item')act(3,380);
+    if(action==='torch'||action==='item'){
+      act(3,280);
+      if(!reduced.matches){
+        const layer=el('pickups'),[x,y]=warPoint(target.pos),[px,py]=warPoint([state.x,state.y]);
+        layer.innerHTML=warAt(target.pos,'<g>'+warItemArt(action==='torch'?'torch':state.stage)+'</g>');
+        const object=layer.firstElementChild.firstElementChild,dx=px-x,dy=py-y-16;
+        const pickup=object.animate([{transform:'translate(0,0)'},{transform:'translate('+dx*.5+'px,'+(dy*.5-10)+'px)',offset:.5},{transform:'translate('+dx+'px,'+dy+'px) scale(.65)',opacity:0}],{duration:240,easing:'ease-in-out',fill:'forwards'});
+        pickup.onfinish=()=>object.parentElement?.remove();
+      }
+    }
     if(action==='bulkhead')act(4,480);
     el('status').textContent={item:'Evidência na mochila.',torch:'Lanterna ligada. O facho acompanha seu olhar.',tag:warTagText,bulkhead:'Antepara selada. Aquecimento do piso restabelecido; o caminho está livre.'}[action];
     plantaoAnimate(el('bag'),'collect');
@@ -154,23 +189,32 @@ function warroomPage(){
         'Reserve a chave primeiro. Confirme a transação antes de liberar a mensagem com ACK.';
       return;
     }
-    persist();dialog.close();draw();el('status').textContent=warChapters[stage].result;
+    persist();dialog.close();draw();if(state.hull==='breached')root.classList.add('wr-impacting');el('status').textContent=warChapters[stage].result;
   };
   el('close').onclick=()=>dialog.close();dialog.onclose=()=>board.focus({preventScroll:true});
-  pad.onclick=e=>{const b=e.target.closest('[data-move]');if(b){move(b.dataset.move);board.focus({preventScroll:true});}};
+  pad.onpointerdown=e=>{
+    const b=e.target.closest('[data-move]');if(!b||b.disabled||e.button!==0)return;
+    e.preventDefault();b.setPointerCapture(e.pointerId);board.focus({preventScroll:true});controls.press(e.pointerId,b.dataset.move);
+  };
+  pad.onpointerup=pad.onpointercancel=pad.onlostpointercapture=e=>controls.release(e.pointerId);
+  pad.onclick=e=>{const b=e.target.closest('[data-move]');if(b&&e.detail===0){move(b.dataset.move);board.focus({preventScroll:true});}};
   el('use').onclick=()=>{board.focus({preventScroll:true});use();};
-  el('replay').onclick=()=>{Object.assign(state,warState());svg.classList.remove('wr-boot');stride=0;pose(0);persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
+  el('replay').onclick=()=>{controls.stop();Object.assign(state,warState());svg.classList.remove('wr-boot');root.classList.remove('wr-impacting');stride=0;pose(0);persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
   function keyboard(e){
     if(dialog.open||state.stage===3||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
     const key=({ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d'})[e.key]||e.key.toLowerCase();
     if(Object.hasOwn(warDirections,key)){
-      e.preventDefault();if(e.repeat&&performance.now()-lastMove<95)return;
-      lastMove=performance.now();move(key);
+      e.preventDefault();if(!e.repeat)controls.press(e.code||e.key,key);
     }else if(e.code==='Space'&&!e.target.closest?.('a,button,summary')){
       e.preventDefault();if(!e.repeat)use();
     }
   }
   document.addEventListener('keydown',keyboard);
-  disposeWarroom=()=>{document.removeEventListener('keydown',keyboard);clearTimeout(idleTimer);};
+  const keyup=e=>controls.release(e.code||e.key);
+  const visibility=()=>{if(document.hidden)controls.stop();};
+  document.addEventListener('keyup',keyup);document.addEventListener('visibilitychange',visibility);
+  window.addEventListener('blur',controls.stop);
+  disposeWarroom=()=>{document.removeEventListener('keydown',keyboard);document.removeEventListener('keyup',keyup);
+    document.removeEventListener('visibilitychange',visibility);window.removeEventListener('blur',controls.stop);controls.stop();clearTimeout(idleTimer);};
   draw();pose(0);
 }
