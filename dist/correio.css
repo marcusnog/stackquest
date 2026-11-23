@@ -1,9 +1,36 @@
 .cj-entry {background:#263b52;border-color:#48627a}
 .cj-entry .plantao-entry-art {background:#fae3ad;color:#493813;border-color:#f8cd75}
 .cj-entry small {color:#f9da91}
+.cj-game button:not(.pg-primary) {color:var(--ink);background:var(--surface);border:1px solid var(--control-edge,var(--line));padding:.4rem .7rem;border-radius:6px;font-size:.875rem}
+.cj-view,.cj-recipes,#cj-cost,#cj-slots{display:flex;flex-wrap:wrap;gap:.45rem}
+.cj-game .cj-view button,.cj-game .cj-recipes button{min-height:44px}
+.cj-game .cj-view [aria-pressed=true],.cj-game .cj-recipes [aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent-ink);color:var(--accent-ink)}
+.cj-game .cj-depot{background-color:#203e4b;background-image:linear-gradient(30deg,transparent 48.7%,#31505a 49%,#31505a 50%,transparent 50.3%),linear-gradient(150deg,transparent 48.7%,#31505a 49%,#31505a 50%,transparent 50.3%);background-size:82px 48px;padding:clamp(15px,2.4vw,32px);color:#fff3d9}
+.cj-game .cj-depot header{margin-bottom:1.1rem}
+.cj-depot h2,.cj-depot p{width:fit-content;background:#203e4b}.cj-depot p{color:#e3ece4;font-size:.88rem}
+.cj-yard{position:relative;max-width:780px;margin:auto}.cj-yard>svg{width:100%;height:auto;display:block}
+.cj-sources{position:absolute;inset:23% 14% auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.cj-game .cj-sources button{display:grid;justify-self:center;justify-items:center;align-self:end;gap:0;padding:0;color:#fff0d4;background:transparent;border:0}
+.cj-sources button strong,.cj-sources button .cj-source-qty{background:#203b44;padding:1px 6px;line-height:1.25}
+.cj-sources button strong{border-radius:4px 4px 0 0}.cj-sources button .cj-source-qty{border-radius:3px}
+.cj-game .cj-sources button:hover:enabled strong{background:#375755;text-decoration:underline}
+.cj-game .cj-sources button:disabled{opacity:.84}.cj-game .cj-sources button:disabled svg{opacity:.35}
+.cj-stack{display:grid;place-items:center;width:100%;background:radial-gradient(ellipse at 50% 84%,#927e62 0 24%,transparent 25%)}
+.cj-stack svg{width:clamp(54px,5.6vw,85px);height:auto;filter:drop-shadow(0 3px 0 #172c32)}
+.cj-source-qty{font:500 .79rem var(--mono);color:#c9dece}
+.cj-bag{background:#162e38;color:#eef3dd;display:flex;align-items:center;gap:15px;padding:12px 14px;flex-wrap:wrap}
+.cj-game .cj-bag h3{margin:0;font-size:.9rem}
+.cj-game #cj-open-craft{background:transparent;border-color:#648180;color:#edf4df;font-size:.8rem;margin-left:auto}
+.cj-slot{background:#28424a;box-shadow:inset 0 0 0 1px #58716f;border-bottom:2px solid #081d26;border-radius:4px;display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:.82rem}.cj-slot svg,.cj-recipes svg{width:30px;height:30px}.cj-slot b{font:600 .84rem var(--mono);color:#ffe3a1}
+.cj-recipes{margin:.65rem 0}.cj-game .cj-recipes button{display:flex;align-items:center;gap:5px;flex:1;text-align:left}
+#cj-cost{margin-top:.65rem}#cj-cost span{font-size:.83rem;border:1px dashed var(--control-edge);padding:4px 8px;border-radius:4px}#cj-cost .ready{background:var(--ok-bg);color:var(--ok);border-style:solid}
+.cj-craft #cj-tip,.cj-craft #cj-notice{font-size:.81rem;margin-top:.4rem}.cj-craft #cj-notice{color:var(--ink);font-weight:600}
+#cj-cost small{flex-basis:100%;font:normal .8rem var(--sans);color:var(--muted);letter-spacing:0}
+.cj-game #cj-gather{margin-top:.4rem}
+.cj-game #cj-recover{margin-top:.4rem;font-size:.8rem;width:100%}
+@media(max-width:580px){.cj-bag{gap:5px}.cj-slot{gap:3px;padding:4px}.cj-slot svg{width:24px;height:24px}.cj-bag h3{width:100%}.cj-depot .cj-yard{margin-inline:-10px}.cj-sources{inset:18% 10% auto}.cj-stack svg{width:clamp(35px,10vw,54px)}.cj-sources button strong{font-size:.76rem}.cj-sources button .cj-source-qty{font-size:.68rem}.cj-game #cj-open-craft{margin-left:0}}
 .cj-shifts,.cj-controls {display:flex;gap:.5rem;flex-wrap:wrap}
 .cj-game button,.cj-game select {min-height:44px}
-.cj-game button:not(.pg-primary) {color:var(--ink);background:var(--surface);border:1px solid var(--control-edge,var(--line));padding:.4rem .7rem;border-radius:6px;font-size:.875rem}
 .cj-game button[aria-current] {color:var(--accent-ink);background:var(--accent-soft);border-color:currentColor}
 .cj-game .cj-controls #cj-step {color:var(--action-fg);background:var(--action-bg);border-color:transparent;font-weight:650}
 .cj-game button:disabled {opacity:.55}

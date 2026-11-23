@@ -1,5 +1,5 @@
 // The drawing uses only fixed artwork, validated counts and palette indices derived from job IDs.
-function correioStation(frame = {}) {
+function correioStation(frame = {}, warehouseOnly = false) {
   const waiting = Array.isArray(frame?.waiting) ? frame.waiting : [];
   const workers = Array.isArray(frame?.workers) ? frame.workers : [];
   const number = n => Number.isSafeInteger(n) && n >= 0 ? n : 0;
@@ -79,6 +79,7 @@ function correioStation(frame = {}) {
     }
     return s;
   }
+  if (warehouseOnly) return '<svg viewBox="0 39 624 219" aria-hidden="true" focusable="false">'+depot()+'</svg>';
   function conveyor(x,y,length,loaded) {
     let s=block(-length/2,-6,2,length,12,4,'#496a74','#354b58','#273e49');
     for(let a=-length/2+3;a<length/2;a+=5)
