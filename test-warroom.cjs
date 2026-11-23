@@ -40,6 +40,23 @@ function walkToTarget(state){
   }
   assert.fail('Objetivo inacessível');
 }
+test('o rádio conduz Lia de cada casa livre até a coleta e o terminal',()=>{
+  const guide=vm.runInNewContext(readFileSync(join(__dirname,'dist/warroom-engine.js'),'utf8')+'\n;({warTutorialStep,warWalkable})');
+  for(const collected of [false,true])for(let y=0;y<5;y++)for(let x=0;x<9;x++){
+    if(!guide.warWalkable(x,y))continue;
+    const state=warState({x,y,collected}),visited=new Set();
+    let hint=guide.warTutorialStep(state);
+    while(hint.key!=='use'){
+      assert.equal(hint.step,collected?3:1);
+      const cell=state.x+','+state.y;
+      assert.ok(!visited.has(cell));visited.add(cell);
+      assert.ok(warMove(state,hint.key));hint=guide.warTutorialStep(state);
+    }
+    assert.equal(hint.step,collected?3:2);
+    assert.equal(warInteract(state),collected?'puzzle':'item');
+  }
+  for(const stage of [1,2,3])assert.equal(guide.warTutorialStep(warState({stage})),null);
+});
 test('Lia contorna as bancadas, resolve os três incidentes e retoma o apagão salvo',()=>{
   let s=warState();
   assert.equal(warMove(s,'a'),false);assert.equal(warInteract(s),'far');

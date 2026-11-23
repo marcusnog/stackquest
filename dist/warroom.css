@@ -16,6 +16,20 @@
 #wr-evidence{background:var(--subtle);padding:10px 14px;border-left:3px solid #bc8a44;line-height:1.5}#wr-input{flex-direction:column;margin:12px 0}
 #wr-input label{display:flex;align-items:center;gap:8px;padding:6px;min-height:44px}#wr-input input[type=number]{width:6rem;padding:7px;background:var(--surface);color:var(--ink);border:1px solid var(--control-edge);border-radius:4px}#wr-feedback{min-height:1.5em}
 .wr-sequence{padding-left:24px}.wr-offline .wr-display{opacity:.15}
+.wr-objective #wr-help{margin-left:auto}
+#wr-intro{position:fixed;inset:0;margin:auto;width:min(27rem,calc(100% - 24px));max-height:90dvh;overflow:auto;box-sizing:border-box;padding:22px;background:#223840;color:#f4edda;border:3px double #b59765;border-radius:10px;box-shadow:0 18px 50px #07131999}
+#wr-intro::backdrop{background:#071823bc}
+#wr-intro h2{margin:8px 0;color:#ffe3a6;font:700 1.65rem Georgia,serif}
+#wr-intro p,#wr-coach p,#wr-decision-tip{line-height:1.5}
+#wr-intro small,#wr-coach small{color:#ffda91;font:700 .75rem var(--mono)}
+#wr-intro button,#wr-help,#wr-skip{background:#243e48;color:#f4edda;border-color:#70878b}
+#wr-intro #wr-start{background:#efd198;color:#22343b;font-weight:650}
+#wr-coach:not([hidden]){position:relative;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#203940;color:#fff4d9;border:1px solid #ab956a;border-radius:8px;margin:10px 14px 4px;padding:10px 14px}
+#wr-coach::after{content:'';position:absolute;bottom:-6px;left:50%;width:9px;height:9px;background:#203940;border:solid #ab956a;border-width:0 1px 1px 0;transform:rotate(45deg)}
+#wr-coach p{margin:3px 0 0}#wr-skip{flex:none}
+.wr-game .wr-guided{outline:3px solid #ffd681;outline-offset:2px}
+#wr-decision-tip{border-left:3px solid #b98d49;padding-left:10px}#wr-decision-tip strong{display:block}
+@media(max-width:560px){#wr-coach:not([hidden]){align-items:flex-start;flex-direction:column;gap:4px}#wr-coach #wr-skip{align-self:flex-end}}
 #wr-player,#wr-light-carrier{transform:var(--wr-at)}
 #wr-held,#wr-beam{transform:var(--wr-aim)}
 #wr-ice>g{opacity:0}.wr-breached #wr-ice>g{opacity:1}

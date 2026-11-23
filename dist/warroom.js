@@ -18,17 +18,20 @@ function warHeldInput(step,period){
   };
 }
 function warroomPage(){
-  const lesson='5-1',state=warState(records.get(lesson)?.warroom);
+  const lesson='5-1',record=records.get(lesson)||{},state=warState(record.warroom);
+  let tutorial=record.warroomTutorial;
   main.innerHTML=`<div class="pg-game wr-game"><header class="pg-bar"><a href="#roadmap"><img src="mark.svg" alt="">StackQuest</a><span>/</span><a href="#laboratorios">Laboratórios</a><a href="#aparencia">Aparência</a></header>
   <div class="pg-content"><header class="pg-heading"><div><small>WAR ROOM · RPG DE ENGENHARIA</small><h1>Plantão em órbita</h1></div><div class="pg-wallet"><span>Incidentes resolvidos</span><strong id="wr-count"></strong><span id="wr-progress" aria-hidden="true"><i></i><i></i><i></i><b id="wr-ship">➤</b></span></div></header>
   <div class="wr-layout"><section class="pg-play"><header class="wr-mapbar"><h2>Convés de operações</h2><span id="wr-position"></span><span id="wr-power"></span></header>
   <div id="wr-board" tabindex="0" role="group" aria-label="Mapa da war room" aria-describedby="wr-keys wr-guide wr-position"><div class="wr-space" aria-hidden="true"><div class="wr-planet"><i></i><b></b></div><div class="wr-aurora"></div></div>${warMap()}<div class="wr-flyby" aria-hidden="true"><div class="wr-rock"><i></i><i></i><i></i><i></i></div></div></div>
-  <div class="wr-objective"><span class="wr-cross" aria-hidden="true">◎</span><div><small>OBJETIVO ATUAL</small><p id="wr-guide"></p></div></div>
+  <div class="wr-objective"><span class="wr-cross" aria-hidden="true">◎</span><div><small>OBJETIVO ATUAL</small><p id="wr-guide"></p></div><button id="wr-help" type="button">Tutorial</button></div>
+  <aside id="wr-coach" hidden aria-label="Orientação do tutorial"><div role="status" aria-atomic="true"><small id="wr-coach-step"></small><p id="wr-coach-tip"></p></div><button id="wr-skip" type="button">Pular tutorial</button></aside>
   <div class="wr-controls"><div class="wr-equip"><span id="wr-equip-art" aria-hidden="true"></span><div><small>EM MÃOS</small><strong id="wr-equipped"></strong></div></div>
   <div class="wr-pad" role="group" aria-label="Movimento"><button data-move="w" aria-label="Andar para cima">↑</button><button data-move="a" aria-label="Andar para a esquerda">←</button><button data-move="s" aria-label="Andar para baixo">↓</button><button data-move="d" aria-label="Andar para a direita">→</button></div><button id="wr-use" class="pg-primary"><kbd>Espaço</kbd><span id="wr-verb"></span></button></div>
   <p id="wr-keys">WASD ou setas para andar e mirar. Espaço para interagir.</p><p class="wr-status" role="status" id="wr-status"></p></section>
   <aside class="pg-side"><section class="pg-round wr-card"><div class="wr-card-head"><small id="wr-card-no"></small><span aria-hidden="true">✦</span></div><h2 id="wr-title"></h2><p id="wr-radio"></p><small id="wr-time"></small></section><section class="pg-round"><h2>Mochila de Lia</h2><ul id="wr-bag"></ul></section><section class="pg-round"><h2>Diário do plantão</h2><ol id="wr-log"></ol><button id="wr-replay" hidden>Jogar novamente</button></section></aside></div>
-  <dialog id="wr-dialog" aria-labelledby="wr-question"><form id="wr-puzzle"><small id="wr-terminal"></small><h2 id="wr-question"></h2><p id="wr-evidence"></p><div id="wr-input"></div><p role="status" id="wr-feedback"></p><div class="wr-actions"><button type="submit" class="pg-primary">Aplicar decisão</button><button id="wr-close" type="button">Voltar à sala</button></div></form></dialog></div></div>`;
+  <dialog id="wr-intro" aria-labelledby="wr-intro-title" aria-describedby="wr-intro-copy"><small>RAVI · CANAL DA PONTE</small><h2 id="wr-intro-title">Seu primeiro plantão</h2><p id="wr-intro-copy"></p><div class="wr-actions"><button id="wr-start" type="button" autofocus></button><button id="wr-dismiss" type="button">Pular tutorial</button></div></dialog>
+  <dialog id="wr-dialog" aria-labelledby="wr-question"><form id="wr-puzzle"><small id="wr-terminal"></small><h2 id="wr-question"></h2><p id="wr-evidence"></p><p id="wr-decision-tip" hidden><strong>Tutorial · 4 de 4</strong> Divida os erros pelo total de pedidos de cada revisão. Selecione sua decisão e clique em Aplicar decisão.</p><div id="wr-input"></div><p role="status" id="wr-feedback"></p><div class="wr-actions"><button type="submit" class="pg-primary">Aplicar decisão</button><button id="wr-close" type="button">Voltar à sala</button></div></form></dialog></div></div>`;
   const root=main.querySelector('.wr-game'),el=id=>root.querySelector('#wr-'+id);
   const board=el('board'),dialog=el('dialog'),svg=board.querySelector('svg'),pad=root.querySelector('.wr-pad');
   const labels={on:'Rede elétrica ativa',dark:'Sem energia',torch:'Sem energia · lanterna ligada',restored:'Energia restabelecida'};
@@ -38,6 +41,45 @@ function warroomPage(){
   let order=[],lastDrop='',aimAngle=warBeam(state).angle;
   let stride=0,idleTimer=0;
   const reduced=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const intro=el('intro'),coach=el('coach');
+  const arrows={w:'↑ (W)',a:'← (A)',s:'↓ (S)',d:'→ (D)'};
+  function setTutorial(value){
+    tutorial=value;save(lesson,{warroomTutorial:value});
+  }
+  function showIntro(){
+    controls.stop();
+    const first=state.stage===0;
+    el('intro-title').textContent=first?'Seu primeiro plantão':'Controles do plantão';
+    el('intro-copy').textContent=first?'Lia, o checkout da nave começou a falhar. Vou te guiar pelo rádio até o relatório do canário. Depois, você decide o que fazer no terminal de telemetria.':'Ande com WASD, com as setas do teclado ou com os botões do convés. Fique na casa marcada ou ao lado dela e use Espaço ou o botão de ação. Seu próximo objetivo aparece abaixo do mapa.';
+    el('start').textContent=first?'Ativar guia pelo rádio':'Voltar ao plantão';
+    el('dismiss').hidden=!first;
+    intro.showModal();
+  }
+  function closeIntro(active){
+    if(state.stage===0)setTutorial(active?'active':'skipped');
+    intro.close();drawMap();board.focus({preventScroll:true});
+  }
+  el('help').onclick=showIntro;
+  el('start').onclick=()=>closeIntro(true);
+  el('dismiss').onclick=()=>closeIntro(false);
+  intro.oncancel=e=>{e.preventDefault();closeIntro(false);};
+  el('skip').onclick=()=>{setTutorial('skipped');drawMap();board.focus({preventScroll:true});};
+  function drawTutorial(){
+    const tip=tutorial==='active'&&warTutorialStep(state);
+    coach.hidden=!tip;el('help').hidden=!!tip;
+    const previous=root.querySelector('.wr-guided');
+    const next=tip&&(tip.key==='use'?el('use'):pad.querySelector('[data-move="'+tip.key+'"]'));
+    if(previous!==next){previous?.classList.remove('wr-guided');if(next)next.classList.add('wr-guided');}
+    if(!tip)return;
+    const label='RAVI · TUTORIAL '+tip.step+' DE 4';
+    const instruction=tip.key==='use'?(state.collected?'O terminal está ao alcance. Pressione Espaço ou toque em Abrir terminal.':'O relatório está ao alcance. Pressione Espaço ou toque em Coletar item para guardá-lo na mochila.'):
+      (state.collected?'Leve o relatório ao terminal de telemetria em C1.':'Aproxime-se do relatório marcado em B4.')+' Use '+arrows[tip.key]+' ou toque na seta destacada.';
+    if(el('coach-step').textContent!==label)el('coach-step').textContent=label;
+    if(el('coach-tip').textContent!==instruction){
+      el('coach-tip').textContent=instruction;
+      if(!reduced.matches)coach.animate([{opacity:.65},{opacity:1}],{duration:160});
+    }
+  }
   function pose(frame){
     const row={s:0,w:1,d:2,a:2}[state.facing];
     el('pose').setAttribute('viewBox',[frame*24,row*28,24,28].join(' '));
@@ -74,6 +116,7 @@ function warroomPage(){
     board.setAttribute('aria-label','Mapa da war room. '+el('position').textContent+(near?'. Ao alcance: '+target.name:'.'));
     el('verb').textContent=near?({item:'Coletar item',torch:'Pegar lanterna',tag:'Ler etiqueta',breaker:'Examinar quadro',bulkhead:'Selar antepara',puzzle:'Abrir terminal'}[target.kind]):(target?'Fora de alcance':'Turno encerrado');
     el('use').disabled=!near;
+    drawTutorial();
   }
   function draw(){
     const ch=warChapters[state.stage],target=warTarget(state);
@@ -133,6 +176,7 @@ function warroomPage(){
   }
   function openPuzzle(){
     const ch=warChapters[state.stage];
+    el('decision-tip').hidden=state.stage!==0||tutorial!=='active';
     order=[];el('feedback').textContent='';el('terminal').textContent='TERMINAL · '+ch.station;
     el('question').textContent=ch.prompt;el('evidence').textContent=ch.evidence;
     if(state.stage===0)el('input').innerHTML=ch.options.map((s,i)=>'<label><input type="radio" required name="revision" value="'+i+'"> '+s+'</label>').join('');
@@ -146,6 +190,7 @@ function warroomPage(){
     const action=warInteract(state);
     if(action==='puzzle'){openPuzzle();return;}
     if(action==='breaker'){
+      el('decision-tip').hidden=true;
       el('terminal').textContent='QUADRO DA SALA';el('question').textContent='Qual circuito atende os monitores que caíram?';
       el('evidence').textContent=warTagText+' Rádio · A falha atingiu apenas a ala leste.';
       el('input').innerHTML=warCircuits.map((c,i)=>'<label><input type="radio" name="circuit" required value="'+i+'"> '+c+'</label>').join('');
@@ -189,7 +234,9 @@ function warroomPage(){
         'Reserve a chave primeiro. Confirme a transação antes de liberar a mensagem com ACK.';
       return;
     }
-    persist();dialog.close();draw();if(state.hull==='breached')root.classList.add('wr-impacting');el('status').textContent=warChapters[stage].result;
+    const graduated=stage===0&&tutorial==='active';
+    if(graduated)setTutorial('done');
+    persist();dialog.close();draw();if(state.hull==='breached')root.classList.add('wr-impacting');el('status').textContent=(graduated?'Tutorial concluído. ':'')+warChapters[stage].result;
   };
   el('close').onclick=()=>dialog.close();dialog.onclose=()=>board.focus({preventScroll:true});
   pad.onpointerdown=e=>{
@@ -201,7 +248,7 @@ function warroomPage(){
   el('use').onclick=()=>{board.focus({preventScroll:true});use();};
   el('replay').onclick=()=>{controls.stop();Object.assign(state,warState());svg.classList.remove('wr-boot');root.classList.remove('wr-impacting');stride=0;pose(0);persist();draw();el('status').textContent='Novo plantão iniciado.';board.focus();};
   function keyboard(e){
-    if(dialog.open||state.stage===3||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
+    if(intro.open||dialog.open||state.stage===3||e.defaultPrevented||e.ctrlKey||e.altKey||e.metaKey||e.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
     const key=({ArrowUp:'w',ArrowDown:'s',ArrowLeft:'a',ArrowRight:'d'})[e.key]||e.key.toLowerCase();
     if(Object.hasOwn(warDirections,key)){
       e.preventDefault();if(!e.repeat)controls.press(e.code||e.key,key);
@@ -217,4 +264,5 @@ function warroomPage(){
   disposeWarroom=()=>{document.removeEventListener('keydown',keyboard);document.removeEventListener('keyup',keyup);
     document.removeEventListener('visibilitychange',visibility);window.removeEventListener('blur',controls.stop);controls.stop();clearTimeout(idleTimer);};
   draw();pose(0);
+  if(!tutorial&&state.stage===0)showIntro();
 }
