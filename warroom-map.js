@@ -1,5 +1,8 @@
 const warAt=(pos,art)=>'<g transform="translate('+warPoint(pos).join(' ')+')">'+art+'</g>';
 function warItemArt(kind){
+  if(kind==='cobre')return '<g fill="none" stroke="#713c27" stroke-width="5"><ellipse cx="-4" cy="-3" rx="6" ry="8"/><ellipse cx="3" cy="-4" rx="6" ry="8"/></g><g fill="none" stroke="#eea66b" stroke-width="2"><ellipse cx="-4" cy="-3" rx="6" ry="8"/><ellipse cx="3" cy="-4" rx="6" ry="8"/></g>';
+  if(kind==='titanio')return '<path d="m-12 0 5-9 14-3 5 8-4 6-16 3z" fill="#a6b8c3" stroke="#374e61" stroke-width="2"/><path d="m-7-8 4 7 14-3" fill="none" stroke="#e0eff3" stroke-width="2"/>';
+  if(kind==='ceramica')return '<path d="m-12-4 15-5 9 6-15 6zM-12 1l9 6 15-6" fill="#f0dfb5" stroke="#795a44" stroke-width="2"/>';
   if(kind==='relay')return '<path d="m-9 4 9-16 9 16z" fill="#d4b274" stroke="#334950" stroke-width="2"/><path d="M0-7v6m-8 6H8" stroke="#294b53" stroke-width="3"/><circle cy="-10" r="3" fill="#fff4ba"/>';
   if(kind===3)return '<path d="m-12-7 17-3 7 8-18 5z" fill="#7abac4" stroke="#284852" stroke-width="2"/><path d="m-5-5 8-2m-4 5 8-2" stroke="#e5ddaf" stroke-width="2"/>';
   if(kind===4)return '<path d="m-9 7 11-14 4 3-11 14z" fill="#b4a9d5" stroke="#38495a" stroke-width="2"/><circle cx="4" cy="-7" r="5" fill="#8ad7cc" stroke="#36565a" stroke-width="2"/>';
@@ -38,5 +41,6 @@ function warMap(){
     '<path d="m40 84 50 160h495v9H85L35 91z" fill="#687b78"/>'+floor+'<g fill="#deead7" font-family="monospace" font-size="9">'+markers+'</g>'+
     '<g id="wr-conduit" visibility="hidden"><path d="M237 68h115v-8h67v22h90" fill="none" stroke="#334c57" stroke-width="5"/><path d="M237 68h115v-8h67v22h90" fill="none" stroke="#e8b969" stroke-width="2"/><rect x="227" y="63" width="20" height="10" rx="1" fill="#ffe7a2"/><text x="237" y="71" text-anchor="middle" font-size="8" font-family="monospace" fill="#3f342b">B</text></g>'+furniture+
     '<g id="wr-ice">'+warIce.map(pos=>warAt(pos,'<path d="m-29-14 49-1 12 28-48 1z" fill="#b3eeeb" opacity=".86"/><path d="m-18 1 11-6 8 4 14-8m-18 9 4 7 12 4" stroke="#6ba6b4" stroke-width="1.4" fill="none"/><path d="m-17-5 3-8 3 8-2 4zM15 4l3-7 3 8z" fill="#f2ffff"/>')).join('')+'</g>'+
+    Object.entries(warMaterials).map(([key,m])=>warAt(m.pos,warItemArt(key)+'<text class="wr-sign" text-anchor="middle" y="12">'+m.name+'</text>')).join('')+
     '<g id="wr-drop"></g><g id="wr-player">'+player+'</g><g id="wr-pickups"></g><rect id="wr-dark" width="620" height="278" fill="#091220" opacity="0" pointer-events="none"/><g id="wr-beacon">'+warAt(warTorch,'<circle r="11" fill="#f2cd84" opacity=".25"/>'+warItemArt('torch'))+'<use href="#wr-player" opacity=".32"/></g></svg>';
 }
