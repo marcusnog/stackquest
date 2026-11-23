@@ -1,4 +1,4 @@
-const pages = {roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], conquistas:['Conquistas','trophy'],ranking:['Ranking','scale']};
+const pages = {roadmap:['Roadmap','route'],laboratorios:['Laboratórios','terminal'], biblioteca:['Biblioteca','book'], comunidades:['Comunidades','network'], conquistas:['Conquistas','trophy'],ranking:['Ranking','scale']};
 const course=[...coreModules,distributedModule,...aiModules];
 const lessons = course.flatMap((module, m) => module.lessons.map((lesson, l) =>
   ({...lesson, module, m, l, id:(m+1)+'-'+(l+1)})));
@@ -58,7 +58,7 @@ function header(section, title, summary) {
 function chrome(page, label) {
   document.getElementById('account-link').innerHTML=account.name?account.name+' <small id="sync-label">'+syncLabel()+'</small>':'Entrar';
   document.title = label+' · StackQuest';
-  document.getElementById('nav').innerHTML = Object.entries(pages).map(([key,[title,symbol]])=>
+  document.getElementById('nav').innerHTML = Object.entries(pages).filter(([key])=>key!=='comunidades'||account.name).map(([key,[title,symbol]])=>
     '<a href="#'+key+'" '+(key===page?'aria-current="page"':'')+'>'+icon(symbol)+title+'</a>').join('');
   document.getElementById('crumb').textContent=label;
   const days=streakDays();
@@ -182,6 +182,10 @@ function render() {
   if(typeof disposePlantao==='function'){disposePlantao();disposePlantao=null;}
   if(typeof disposeCorreio==='function'){disposeCorreio();disposeCorreio=null;}
   const route=location.hash.slice(1)||'roadmap';
+  if(route==='comunidades'||route.startsWith('comunidades/')){
+    if(!account.name){location.replace('#conta');return;}
+    chrome('comunidades','Comunidades');communityPage(route);return;
+  }
   if(route==='jogo/plantao'){chrome('laboratorios','Plantão no Datacenter');plantaoPage();return;}
   if(route==='jogo/correio'){chrome('laboratorios','Correio de Jobs');correioPage();return;}
   if(route==='aparencia'){chrome('conta','Aparência');appearancePage();return;}
